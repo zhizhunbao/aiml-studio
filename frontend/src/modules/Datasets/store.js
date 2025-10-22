@@ -37,7 +37,7 @@ export const DATASETS_METADATA = {
     featureColumns: ['sepal length (cm)', 'sepal width (cm)', 'petal length (cm)', 'petal width (cm)'],
     classNames: ['setosa', 'versicolor', 'virginica'],
     type: 'classification',
-    path: '/datasets/iris.csv'
+    path: '/aiml-studio/datasets/iris.csv'
   },
   
   // 加州房价数据集 - 回归问题
@@ -51,7 +51,7 @@ export const DATASETS_METADATA = {
     targetColumn: 'MedHouseVal',
     featureColumns: ['MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup', 'Latitude', 'Longitude'],
     type: 'regression',
-    path: '/datasets/california_housing.csv'
+    path: '/aiml-studio/datasets/california_housing.csv'
   },
   
   // 红酒数据集 - 多分类问题
@@ -65,7 +65,7 @@ export const DATASETS_METADATA = {
     classes: 3,
     targetColumn: 'target',
     type: 'classification',
-    path: '/datasets/wine.csv'
+    path: '/aiml-studio/datasets/wine.csv'
   },
   
   // 乳腺癌数据集 - 二分类问题
@@ -80,7 +80,7 @@ export const DATASETS_METADATA = {
     targetColumn: 'target',
     classNames: ['malignant', 'benign'],
     type: 'classification',
-    path: '/datasets/breast_cancer.csv'
+    path: '/aiml-studio/datasets/breast_cancer.csv'
   },
   
   // 手写数字数据集 - 多分类问题
@@ -94,7 +94,7 @@ export const DATASETS_METADATA = {
     classes: 10,
     targetColumn: 'target',
     type: 'classification',
-    path: '/datasets/digits.csv'
+    path: '/aiml-studio/datasets/digits.csv'
   },
   
   // 糖尿病数据集 - 回归问题
@@ -107,7 +107,7 @@ export const DATASETS_METADATA = {
     features: 10,
     targetColumn: 'target',
     type: 'regression',
-    path: '/datasets/diabetes.csv'
+    path: '/aiml-studio/datasets/diabetes.csv'
   }
 };
 

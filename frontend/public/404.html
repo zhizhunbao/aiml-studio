@@ -6,16 +6,24 @@
 </head>
 <body>
     <script>
-        // 保存完整路径信息（包括查询参数和hash）
+        // GitHub Pages 404.html 重定向脚本
+        // 当用户直接访问SPA路由时，GitHub Pages会返回404.html
+        // 我们需要将URL重写为React应用可以处理的格式
+        
         var path = window.location.pathname;
         var search = window.location.search;
         var hash = window.location.hash;
         
-        // 构建目标URL，保留查询参数和hash
-        var targetUrl = '/aiml-studio/' + search + hash;
+        // 移除 /aiml-studio 前缀
+        var actualPath = path.replace(/^\/aiml-studio/, '');
         
-        // 立即重定向
-        window.location.replace(targetUrl);
+        // 使用 history.replaceState 来重写URL，避免页面刷新
+        // 这样React Router就能正确处理路由了
+        var newUrl = '/aiml-studio' + actualPath + search + hash;
+        window.history.replaceState(null, null, newUrl);
+        
+        // 然后重定向到React应用的入口
+        window.location.replace('/aiml-studio/');
     </script>
 </body>
 </html>

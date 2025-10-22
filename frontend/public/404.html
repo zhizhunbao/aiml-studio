@@ -14,15 +14,14 @@
         var search = window.location.search;
         var hash = window.location.hash;
         
-        // 移除 /aiml-studio 前缀
+        // 移除 /aiml-studio 前缀，获取实际路径
         var actualPath = path.replace(/^\/aiml-studio/, '');
         
-        // 使用 history.replaceState 来重写URL，避免页面刷新
-        // 这样React Router就能正确处理路由了
-        var newUrl = '/aiml-studio' + actualPath + search + hash;
-        window.history.replaceState(null, null, newUrl);
+        // 设置一个标记，告诉React应用这是从404.html来的
+        sessionStorage.setItem('from404', 'true');
+        sessionStorage.setItem('originalPath', actualPath);
         
-        // 然后重定向到React应用的入口
+        // 重定向到React应用根路径
         window.location.replace('/aiml-studio/');
     </script>
 </body>

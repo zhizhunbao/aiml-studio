@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { MDXProvider } from '@mdx-js/react';
 import { MainLayout } from '@common/modules/Layout';
 import { LayoutProvider } from '@common/modules/Layout/store';
@@ -77,8 +77,8 @@ function App() {
             <Router basename="/aiml-studio" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
             <Routes>
-              {/* 默认重定向到线性回归 */}
-              <Route path="/" element={<Navigate to="/algorithms/supervised/linear-regression" replace />} />
+              {/* 默认重定向到线性回归 - 只在直接访问根路径且不是从404.html来时重定向 */}
+              <Route path="/" element={<RootRedirect />} />
               
               {/* DevTools 路由 */}
               {devToolsRoutes.map((route) => (
@@ -106,15 +106,33 @@ function App() {
   );
 }
 
+function RootRedirect() {
+  // 检查是否从404.html来的
+  const from404 = sessionStorage.getItem('from404');
+  const originalPath = sessionStorage.getItem('originalPath');
+  
+  if (from404 === 'true' && originalPath) {
+    // 清除标记
+    sessionStorage.removeItem('from404');
+    sessionStorage.removeItem('originalPath');
+    
+    // 重定向到原始路径
+    return <Navigate to={originalPath} replace />;
+  }
+  
+  // 默认重定向到线性回归
+  return <Navigate to="/algorithms/supervised/linear-regression" replace />;
+}
+
 function NotFound() {
   return (
     <div className="flex items-center justify-center h-screen">
       <div className="text-center">
         <h1 className="text-6xl font-bold text-gray-300">404</h1>
         <p className="text-xl text-gray-600 mt-4">页面未找到</p>
-        <a href="/" className="text-blue-500 hover:underline mt-4 inline-block">
+        <Link to="/" className="text-blue-500 hover:underline mt-4 inline-block">
           返回首页
-        </a>
+        </Link>
       </div>
     </div>
   );

@@ -1,0 +1,19 @@
+{
+  "dataset": {
+    "title": "Datasets",
+    "selectDataset": "Select Dataset",
+    "chooseDataset": "Choose a dataset...",
+    "loading": "Loading dataset...",
+    "error": "Error loading dataset",
+    "samples": "Samples",
+    "features": "Features",
+    "classes": "Classes",
+    "type": "Type",
+    "type.classification": "Classification",
+    "type.regression": "Regression",
+    "showingRows": "Showing {{count}} of {{total}} rows",
+    "preview": "Data Preview",
+    "info": "Dataset Information"
+  }
+}
+

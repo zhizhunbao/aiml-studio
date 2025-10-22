@@ -1,0 +1,264 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const MLPDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [hiddenLayers, setHiddenLayers] = useState(2);
+  const [neuronsPerLayer, setNeuronsPerLayer] = useState(128);
+  const [learningRate, setLearningRate] = useState(0.001);
+  const [epochs, setEpochs] = useState(100);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('Started training MLP model', { hiddenLayers, neuronsPerLayer, learningRate, epochs });
+    
+    try {
+      const response = await axios.post('/api/algorithms/neural-networks/mlp/train', {
+        hidden_layers: hiddenLayers,
+        neurons_per_layer: neuronsPerLayer,
+        learning_rate: learningRate,
+        epochs: epochs,
+      });
+      setResult(response.data);
+      logger.info('MLP training completed successfully', { result: response.data });
+    } catch (error) {
+      logger.error('MLP training failed', { error: error.message, hiddenLayers, neuronsPerLayer, learningRate, epochs });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'mlp',
+          hiddenLayers,
+          neuronsPerLayer,
+          learningRate,
+          epochs,
+          message: 'Training failed. Please check if backend service is running'
+        }
+      });
+      setResult({ error: 'Training failed. Please check the console for details.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="demo-container">
+      <div className="demo-parameters">
+        <h3>Training Parameters</h3>
+        <div className="parameter-group">
+          <label htmlFor="hiddenLayers">Hidden Layers:</label>
+          <input
+            id="hiddenLayers"
+            type="number"
+            value={hiddenLayers}
+            onChange={(e) => setHiddenLayers(parseInt(e.target.value))}
+            min="1"
+            max="10"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="neuronsPerLayer">Neurons per Layer:</label>
+          <input
+            id="neuronsPerLayer"
+            type="number"
+            value={neuronsPerLayer}
+            onChange={(e) => setNeuronsPerLayer(parseInt(e.target.value))}
+            min="1"
+            max="1024"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="learningRate">Learning Rate:</label>
+          <input
+            id="learningRate"
+            type="number"
+            value={learningRate}
+            onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+            min="0.0001"
+            max="1"
+            step="0.001"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="epochs">Epochs:</label>
+          <input
+            id="epochs"
+            type="number"
+            value={epochs}
+            onChange={(e) => setEpochs(parseInt(e.target.value))}
+            min="1"
+            max="1000"
+          />
+        </div>
+        <button onClick={runTraining} disabled={loading}>
+          {loading ? 'Training...' : 'Start Training'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="demo-results">
+          <h3>Training Results</h3>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+# Multi-Layer Perceptron (MLP)
+
+A Multi-Layer Perceptron (MLP) is a class of feedforward artificial neural network (ANN). It consists of at least three layers of nodes: an input layer, a hidden layer, and an output layer. Each node is a neuron that uses a nonlinear activation function.
+
+## How MLPs Work
+
+MLPs are fully connected networks where each neuron in one layer connects to every neuron in the next layer. The key components include:
+
+### 1. Input Layer
+- Receives the input data
+- Each input feature corresponds to one neuron
+- No computation is performed in this layer
+
+### 2. Hidden Layers
+- Perform the actual computation
+- Apply weights, biases, and activation functions
+- Can have multiple hidden layers (deep learning)
+
+### 3. Output Layer
+- Produces the final prediction or classification
+- Number of neurons depends on the task
+- Uses appropriate activation function (e.g., softmax for classification)
+
+## Architecture
+
+```
+Input Layer → Hidden Layer 1 → Hidden Layer 2 → ... → Output Layer
+```
+
+## Mathematical Foundation
+
+For a single neuron, the output is calculated as:
+
+```
+y = f(∑(wi * xi) + b)
+```
+
+Where:
+- `wi` are the weights
+- `xi` are the input values
+- `b` is the bias
+- `f` is the activation function
+
+## Activation Functions
+
+### Common Activation Functions:
+
+1. **ReLU (Rectified Linear Unit)**
+   ```
+   f(x) = max(0, x)
+   ```
+
+2. **Sigmoid**
+   ```
+   f(x) = 1 / (1 + e^(-x))
+   ```
+
+3. **Tanh**
+   ```
+   f(x) = tanh(x)
+   ```
+
+4. **Softmax** (for output layer in classification)
+   ```
+   f(xi) = e^(xi) / ∑(e^(xj))
+   ```
+
+## Training Process
+
+1. **Forward Propagation**: Data flows from input to output
+2. **Loss Calculation**: Compare prediction with actual target
+3. **Backpropagation**: Calculate gradients of loss with respect to weights
+4. **Weight Update**: Adjust weights using optimization algorithm (e.g., SGD, Adam)
+
+## Applications
+
+- **Classification**: Image classification, spam detection, sentiment analysis
+- **Regression**: Price prediction, stock market analysis, weather forecasting
+- **Pattern Recognition**: Handwriting recognition, speech recognition
+- **Function Approximation**: Universal function approximators
+
+## Interactive Demo
+
+Try training an MLP model with different parameters:
+
+<MLPDemo />
+
+## Implementation Example
+
+Here's a simple MLP implementation using Python and TensorFlow:
+
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# Create an MLP model
+model = models.Sequential([
+    layers.Dense(128, activation='relu', input_shape=(784,)),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(32, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Train the model
+model.fit(train_images, train_labels, epochs=100, batch_size=32)
+```
+
+## Hyperparameters
+
+- **Hidden Layers**: Number of layers between input and output
+- **Neurons per Layer**: Number of neurons in each hidden layer
+- **Learning Rate**: Controls the step size during optimization
+- **Epochs**: Number of complete passes through the training dataset
+- **Batch Size**: Number of samples processed before model update
+- **Activation Function**: Non-linear function applied to neuron outputs
+
+## Advantages
+
+- **Universal Approximation**: Can approximate any continuous function
+- **Flexibility**: Can handle various types of data
+- **Non-linear Mapping**: Can learn complex patterns
+- **Scalability**: Can be scaled to large datasets
+
+## Limitations
+
+- **Overfitting**: Risk of memorizing training data
+- **Local Minima**: May get stuck in local optima during training
+- **Computational Cost**: Can be expensive for large networks
+- **Black Box**: Difficult to interpret learned representations
+
+## Best Practices
+
+1. **Data Preprocessing**: Normalize or standardize input features
+2. **Regularization**: Use dropout, L1/L2 regularization to prevent overfitting
+3. **Batch Normalization**: Stabilize training and improve convergence
+4. **Learning Rate Scheduling**: Adjust learning rate during training
+5. **Early Stopping**: Stop training when validation performance stops improving
+
+## Advanced Techniques
+
+- **Dropout**: Randomly set neurons to zero during training
+- **Batch Normalization**: Normalize inputs to each layer
+- **Weight Initialization**: Use proper initialization schemes (Xavier, He)
+- **Optimization**: Use advanced optimizers (Adam, RMSprop)
+- **Ensemble Methods**: Combine multiple MLPs for better performance

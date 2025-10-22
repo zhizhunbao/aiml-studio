@@ -1,0 +1,264 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const MLPDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [hiddenLayers, setHiddenLayers] = useState(2);
+  const [neuronsPerLayer, setNeuronsPerLayer] = useState(128);
+  const [learningRate, setLearningRate] = useState(0.001);
+  const [epochs, setEpochs] = useState(100);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('开始训练多层感知器(MLP)', { hiddenLayers, neuronsPerLayer, learningRate, epochs });
+    
+    try {
+      const response = await axios.post('/api/algorithms/neural-networks/mlp/train', {
+        hidden_layers: hiddenLayers,
+        neurons_per_layer: neuronsPerLayer,
+        learning_rate: learningRate,
+        epochs: epochs,
+      });
+      setResult(response.data);
+      logger.info('MLP 训练成功', { result: response.data });
+    } catch (error) {
+      logger.error('MLP 训练失败', { error: error.message, hiddenLayers, neuronsPerLayer, learningRate, epochs });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'mlp',
+          hiddenLayers,
+          neuronsPerLayer,
+          learningRate,
+          epochs,
+          message: '训练失败，请检查后端服务是否正常运行'
+        }
+      });
+      setResult({ error: '训练失败，请检查控制台获取详细信息' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="demo-container">
+      <div className="demo-parameters">
+        <h3>训练参数</h3>
+        <div className="parameter-group">
+          <label htmlFor="hiddenLayers">隐藏层数:</label>
+          <input
+            id="hiddenLayers"
+            type="number"
+            value={hiddenLayers}
+            onChange={(e) => setHiddenLayers(parseInt(e.target.value))}
+            min="1"
+            max="10"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="neuronsPerLayer">每层神经元数:</label>
+          <input
+            id="neuronsPerLayer"
+            type="number"
+            value={neuronsPerLayer}
+            onChange={(e) => setNeuronsPerLayer(parseInt(e.target.value))}
+            min="1"
+            max="1024"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="learningRate">学习率:</label>
+          <input
+            id="learningRate"
+            type="number"
+            value={learningRate}
+            onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+            min="0.0001"
+            max="1"
+            step="0.001"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="epochs">训练轮数:</label>
+          <input
+            id="epochs"
+            type="number"
+            value={epochs}
+            onChange={(e) => setEpochs(parseInt(e.target.value))}
+            min="1"
+            max="1000"
+          />
+        </div>
+        <button onClick={runTraining} disabled={loading}>
+          {loading ? '训练中...' : '开始训练'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="demo-results">
+          <h3>训练结果</h3>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+# 多层感知机 (MLP)
+
+多层感知机（MLP）是一类前馈人工神经网络（ANN）。它由至少三层节点组成：输入层、隐藏层和输出层。每个节点是一个使用非线性激活函数的神经元。
+
+## MLP 的工作原理
+
+MLP 是全连接网络，其中一层的每个神经元都连接到下一层的每个神经元。关键组件包括：
+
+### 1. 输入层
+- 接收输入数据
+- 每个输入特征对应一个神经元
+- 此层不执行计算
+
+### 2. 隐藏层
+- 执行实际计算
+- 应用权重、偏置和激活函数
+- 可以有多个隐藏层（深度学习）
+
+### 3. 输出层
+- 产生最终预测或分类
+- 神经元数量取决于任务
+- 使用适当的激活函数（如分类的 softmax）
+
+## 架构
+
+```
+输入层 → 隐藏层1 → 隐藏层2 → ... → 输出层
+```
+
+## 数学基础
+
+对于单个神经元，输出计算为：
+
+```
+y = f(∑(wi * xi) + b)
+```
+
+其中：
+- `wi` 是权重
+- `xi` 是输入值
+- `b` 是偏置
+- `f` 是激活函数
+
+## 激活函数
+
+### 常见激活函数：
+
+1. **ReLU（修正线性单元）**
+   ```
+   f(x) = max(0, x)
+   ```
+
+2. **Sigmoid**
+   ```
+   f(x) = 1 / (1 + e^(-x))
+   ```
+
+3. **Tanh**
+   ```
+   f(x) = tanh(x)
+   ```
+
+4. **Softmax**（用于分类的输出层）
+   ```
+   f(xi) = e^(xi) / ∑(e^(xj))
+   ```
+
+## 训练过程
+
+1. **前向传播**：数据从输入流向输出
+2. **损失计算**：比较预测与实际目标
+3. **反向传播**：计算损失相对于权重的梯度
+4. **权重更新**：使用优化算法调整权重（如 SGD、Adam）
+
+## 应用场景
+
+- **分类**：图像分类、垃圾邮件检测、情感分析
+- **回归**：价格预测、股票市场分析、天气预报
+- **模式识别**：手写识别、语音识别
+- **函数逼近**：通用函数逼近器
+
+## 交互式演示
+
+尝试使用不同参数训练 MLP 模型：
+
+<MLPDemo />
+
+## 实现示例
+
+以下是使用 Python 和 TensorFlow 的简单 MLP 实现：
+
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# 创建 MLP 模型
+model = models.Sequential([
+    layers.Dense(128, activation='relu', input_shape=(784,)),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(32, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+
+# 编译模型
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+# 训练模型
+model.fit(train_images, train_labels, epochs=100, batch_size=32)
+```
+
+## 超参数
+
+- **隐藏层数**：输入层和输出层之间的层数
+- **每层神经元数**：每个隐藏层中的神经元数量
+- **学习率**：控制优化过程中的步长
+- **训练轮数**：完整遍历训练数据集的次数
+- **批次大小**：模型更新前处理的样本数量
+- **激活函数**：应用于神经元输出的非线性函数
+
+## 优势
+
+- **通用逼近**：可以逼近任何连续函数
+- **灵活性**：可以处理各种类型的数据
+- **非线性映射**：可以学习复杂的模式
+- **可扩展性**：可以扩展到大型数据集
+
+## 局限性
+
+- **过拟合**：存在记忆训练数据的风险
+- **局部最小值**：训练期间可能陷入局部最优
+- **计算成本**：对于大型网络可能很昂贵
+- **黑盒**：难以解释学习的表示
+
+## 最佳实践
+
+1. **数据预处理**：标准化或规范化输入特征
+2. **正则化**：使用 dropout、L1/L2 正则化防止过拟合
+3. **批归一化**：稳定训练并改善收敛
+4. **学习率调度**：训练期间调整学习率
+5. **早停**：当验证性能停止改善时停止训练
+
+## 高级技术
+
+- **Dropout**：训练期间随机将神经元设置为零
+- **批归一化**：规范化每层的输入
+- **权重初始化**：使用适当的初始化方案（Xavier、He）
+- **优化**：使用高级优化器（Adam、RMSprop）
+- **集成方法**：组合多个 MLP 以获得更好的性能

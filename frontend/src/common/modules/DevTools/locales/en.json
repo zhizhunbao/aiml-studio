@@ -1,0 +1,33 @@
+{
+  "devTools": {
+    "title": "Developer Tools",
+    "description": "Monitor logs, exceptions, and system information",
+    "logs": "Logs",
+    "exceptions": "Exceptions",
+    "console": "Console",
+    "total": "Total",
+    "unresolved": "Unresolved",
+    "resolved": "Resolved",
+    "allLevels": "All Levels",
+    "allExceptions": "All Exceptions",
+    "search": "Search logs...",
+    "searchExceptions": "Search exceptions...",
+    "export": "Export",
+    "exportLogs": "Export Logs",
+    "clear": "Clear",
+    "clearLogs": "Clear Logs",
+    "clearExceptions": "Clear Exceptions",
+    "noLogs": "No logs to display",
+    "noExceptions": "No exceptions to display",
+    "showData": "Show Data",
+    "hideData": "Hide Data",
+    "showContext": "Show Context",
+    "hideContext": "Hide Context",
+    "showStack": "Show Stack Trace",
+    "hideStack": "Hide Stack Trace",
+    "markResolved": "Mark as Resolved",
+    "consoleInfo": "Browser console integration",
+    "consoleHint": "Open browser DevTools (F12) to view console output"
+  }
+}
+

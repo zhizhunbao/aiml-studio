@@ -1,0 +1,207 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const CNNDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [epochs, setEpochs] = useState(10);
+  const [batchSize, setBatchSize] = useState(32);
+  const [learningRate, setLearningRate] = useState(0.001);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('开始训练卷积神经网络(CNN)', { epochs, batchSize, learningRate });
+    
+    try {
+      const response = await axios.post('/api/algorithms/neural-networks/cnn/train', {
+        epochs: epochs,
+        batch_size: batchSize,
+        learning_rate: learningRate,
+      });
+      setResult(response.data);
+      logger.info('CNN 训练成功', { result: response.data });
+    } catch (error) {
+      logger.error('CNN 训练失败', { error: error.message, epochs, batchSize, learningRate });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'cnn',
+          epochs,
+          batchSize,
+          learningRate,
+          message: '训练失败，请检查后端服务是否正常运行'
+        }
+      });
+      setResult({ error: '训练失败，请检查控制台获取详细信息' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="demo-container">
+      <div className="demo-parameters">
+        <h3>训练参数</h3>
+        <div className="parameter-group">
+          <label htmlFor="epochs">训练轮数:</label>
+          <input
+            id="epochs"
+            type="number"
+            value={epochs}
+            onChange={(e) => setEpochs(parseInt(e.target.value))}
+            min="1"
+            max="100"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="batchSize">批次大小:</label>
+          <input
+            id="batchSize"
+            type="number"
+            value={batchSize}
+            onChange={(e) => setBatchSize(parseInt(e.target.value))}
+            min="1"
+            max="256"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="learningRate">学习率:</label>
+          <input
+            id="learningRate"
+            type="number"
+            value={learningRate}
+            onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+            min="0.0001"
+            max="1"
+            step="0.001"
+          />
+        </div>
+        <button onClick={runTraining} disabled={loading}>
+          {loading ? '训练中...' : '开始训练'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="demo-results">
+          <h3>训练结果</h3>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+# 卷积神经网络 (CNN)
+
+卷积神经网络（CNN）是一种深度学习算法，在图像识别和计算机视觉任务中特别有效。CNN 通过反向传播自动学习特征的空间层次结构。
+
+## CNN 的工作原理
+
+CNN 使用称为卷积的数学运算，将滤波器（核）应用于输入图像以提取特征。CNN 的关键组件包括：
+
+### 1. 卷积层
+- 应用滤波器检测边缘、纹理和形状等特征
+- 每个滤波器学习检测不同的模式
+- 创建特征图，突出显示特定特征的位置
+
+### 2. 池化层
+- 减少特征图的空间维度
+- 常见类型：最大池化和平均池化
+- 有助于降低计算复杂度并防止过拟合
+
+### 3. 全连接层
+- 将一层的每个神经元连接到另一层的每个神经元
+- 用于最终的分类决策
+- 类似于传统神经网络
+
+## 架构
+
+```
+输入图像 → 卷积层 → 池化层 → 卷积层 → 池化层 → 全连接层 → 输出
+```
+
+## 主要优势
+
+- **平移不变性**：无论对象在图像中的位置如何，都能识别
+- **参数共享**：与全连接网络相比，减少了参数数量
+- **层次特征学习**：自动学习从低级到高级的特征
+
+## 应用场景
+
+- 图像分类
+- 目标检测
+- 人脸识别
+- 医学图像分析
+- 自动驾驶汽车
+
+## 交互式演示
+
+尝试使用不同参数训练 CNN 模型：
+
+<CNNDemo />
+
+## 实现示例
+
+以下是使用 Python 和 TensorFlow 的简单 CNN 实现：
+
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# 创建 CNN 模型
+model = models.Sequential([
+    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.Flatten(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+
+# 编译模型
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+# 训练模型
+model.fit(train_images, train_labels, epochs=10, batch_size=32)
+```
+
+## 超参数
+
+- **训练轮数**：完整遍历训练数据集的次数
+- **批次大小**：模型更新前处理的样本数量
+- **学习率**：控制训练期间模型权重更新的程度
+- **滤波器数量**：决定网络学习特征的能力
+- **滤波器大小**：卷积核的大小（如 3x3、5x5）
+
+## 最佳实践
+
+1. **数据增强**：通过应用变换增加数据集大小
+2. **正则化**：使用 dropout 和批归一化防止过拟合
+3. **迁移学习**：使用预训练模型获得更好的性能
+4. **学习率调度**：训练期间调整学习率
+5. **早停**：当验证性能停止改善时停止训练
+
+## 挑战
+
+- **计算要求**：CNN 需要大量的计算资源
+- **过拟合**：存在记忆训练数据而不是学习一般模式的风险
+- **超参数调优**：找到最优参数可能很耗时
+- **数据需求**：通常需要大量标记数据
+
+## 未来发展方向
+
+- **注意力机制**：关注输入的相关部分
+- **高效架构**：MobileNets、EfficientNets 用于移动部署
+- **3D CNN**：将 CNN 扩展到视频和体积数据
+- **胶囊网络**：保持空间关系的替代架构

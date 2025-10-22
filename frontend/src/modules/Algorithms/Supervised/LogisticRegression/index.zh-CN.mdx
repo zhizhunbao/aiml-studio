@@ -1,0 +1,426 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { Demo, ParameterSlider, Button, Chart, AlgorithmHeader, PlayIcon, ResetIcon } from '@common/modules/MDX/MDXComponents';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const LogisticRegressionDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [learningRate, setLearningRate] = useState(0.1);
+  const [iterations, setIterations] = useState(1000);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('开始训练逻辑回归模型', { learningRate, iterations });
+    
+    try {
+      const response = await axios.post('/api/algorithms/supervised/logistic-regression/train', {
+        learning_rate: learningRate,
+        iterations: iterations,
+      });
+      setResult(response.data);
+      logger.info('逻辑回归模型训练成功', { result: response.data });
+    } catch (error) {
+      logger.error('逻辑回归模型训练失败', { error: error.message, learningRate, iterations });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'logistic-regression',
+          learningRate,
+          iterations,
+          message: '训练失败，请检查后端服务是否正常运行'
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetParameters = () => {
+    setLearningRate(0.1);
+    setIterations(1000);
+    setResult(null);
+  };
+
+  return (
+    <Demo title="⚡ 交互式实验">
+      <div className="space-y-6">
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <h4 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">📊 参数调整</h4>
+          
+          <ParameterSlider
+            label="学习率 (Learning Rate)"
+            value={learningRate}
+            onChange={setLearningRate}
+            min={0.01}
+            max={1.0}
+            step={0.01}
+          />
+          
+          <ParameterSlider
+            label="迭代次数 (Iterations)"
+            value={iterations}
+            onChange={setIterations}
+            min={100}
+            max={5000}
+            step={100}
+          />
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={runTraining} icon={PlayIcon} disabled={loading}>
+              {loading ? '训练中...' : '运行训练'}
+            </Button>
+            <Button onClick={resetParameters} variant="secondary" icon={ResetIcon}>
+              重置参数
+            </Button>
+          </div>
+        </div>
+
+        {result && (
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">📈 分类结果</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">准确率 (Accuracy):</span>
+                  <span className="ml-2 font-mono font-semibold">{result.accuracy?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">精确率 (Precision):</span>
+                  <span className="ml-2 font-mono font-semibold">{result.precision?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">召回率 (Recall):</span>
+                  <span className="ml-2 font-mono font-semibold">{result.recall?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">F1 Score:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.f1_score?.toFixed(4)}</span>
+                </div>
+              </div>
+            </div>
+
+            {result.plot_data && (
+              <Chart
+                data={result.plot_data}
+                layout={{
+                  title: '逻辑回归决策边界',
+                  xaxis: { title: 'Feature 1' },
+                  yaxis: { title: 'Feature 2' },
+                  height: 400,
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </Demo>
+  );
+};
+
+<AlgorithmHeader 
+  title="逻辑回归 Logistic Regression"
+  difficulty="beginner"
+  stars={2}
+  time={20}
+/>
+
+## 1️⃣ 算法概览
+
+**逻辑回归**（Logistic Regression）是一种经典的**分类算法**，尽管名字中带有"回归"，但它主要用于解决**二分类问题**。通过 Sigmoid 函数将线性回归的输出映射到 (0, 1) 区间，表示样本属于某一类别的概率。
+
+### 核心思想
+
+- 使用 **Sigmoid 函数**将线性模型输出转换为概率值
+- 通过**最大似然估计**或**梯度下降**优化模型参数
+- 输出概率大于 0.5 判定为正类，否则为负类
+
+### 应用场景
+
+- 🏥 **疾病诊断**：根据症状和检查指标判断是否患病
+- 📧 **垃圾邮件检测**：判断邮件是否为垃圾邮件
+- 💳 **信用评分**：评估贷款申请的违约风险
+- 🎯 **点击率预测**：预测用户是否会点击广告
+
+---
+
+## 2️⃣ 发展历史
+
+- **1838年** - 比利时数学家**Pierre François Verhulst**首次提出 Logistic 函数描述人口增长
+- **1944年** - **Joseph Berkson**将 Logistic 函数引入统计学，用于二分类问题
+- **1958年** - **David Cox**提出比例风险模型，奠定了现代逻辑回归的基础
+- **1970年代** - 逻辑回归在医学统计和流行病学中广泛应用
+- **21世纪** - 成为机器学习和数据挖掘的基础算法
+
+---
+
+## 3️⃣ 数学原理
+
+### Sigmoid 函数
+
+逻辑回归的核心是 **Sigmoid 函数**（也称为 Logistic 函数）：
+
+```math
+\sigma(z) = \frac{1}{1 + e^{-z}}
+```
+
+其中 $z = \mathbf{w}^T\mathbf{x} + b$ 是线性组合。
+
+Sigmoid 函数将任意实数映射到 (0, 1) 区间，具有以下性质：
+- $\sigma(0) = 0.5$
+- $\sigma(+\infty) = 1$
+- $\sigma(-\infty) = 0$
+- 导数：$\sigma'(z) = \sigma(z)(1 - \sigma(z))$
+
+### 模型表示
+
+对于输入 $\mathbf{x}$，模型预测其属于正类的概率：
+
+```math
+P(y=1|\mathbf{x}) = \sigma(\mathbf{w}^T\mathbf{x} + b) = \frac{1}{1 + e^{-(\mathbf{w}^T\mathbf{x} + b)}}
+```
+
+### 损失函数
+
+使用**交叉熵损失**（Cross-Entropy Loss）：
+
+```math
+J(\mathbf{w}, b) = -\frac{1}{m}\sum_{i=1}^{m}[y^{(i)}\log(h(\mathbf{x}^{(i)})) + (1-y^{(i)})\log(1-h(\mathbf{x}^{(i)}))]
+```
+
+### 梯度下降
+
+参数更新规则与线性回归类似：
+
+```math
+w_j := w_j - \alpha \frac{\partial J}{\partial w_j}
+```
+
+```math
+b := b - \alpha \frac{\partial J}{\partial b}
+```
+
+---
+
+## 4️⃣ 交互式实验 ⚡
+
+在下面的演示中，使用鸢尾花数据集进行二分类：
+
+<LogisticRegressionDemo />
+
+---
+
+## 5️⃣ 代码实现
+
+### Python 实现（scikit-learn）
+
+```python
+import numpy as np
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+
+# 加载数据
+from sklearn.datasets import load_iris
+iris = load_iris()
+X = iris.data[:100, :2]  # 只取前100个样本（两类）
+y = iris.target[:100]
+
+# 划分数据集
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 创建并训练模型
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# 预测
+y_pred = model.predict(X_test)
+y_proba = model.predict_proba(X_test)
+
+# 评估
+accuracy = accuracy_score(y_test, y_pred)
+print(f"准确率: {accuracy:.4f}")
+print("\n分类报告:")
+print(classification_report(y_test, y_pred))
+print("\n混淆矩阵:")
+print(confusion_matrix(y_test, y_pred))
+```
+
+### 从零实现逻辑回归
+
+```python
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+
+def logistic_regression(X, y, learning_rate=0.1, iterations=1000):
+    m, n = X.shape
+    w = np.zeros((n, 1))
+    b = 0
+    
+    for i in range(iterations):
+        # 前向传播
+        z = X @ w + b
+        y_pred = sigmoid(z)
+        
+        # 计算梯度
+        dw = (1/m) * X.T @ (y_pred - y)
+        db = (1/m) * np.sum(y_pred - y)
+        
+        # 更新参数
+        w -= learning_rate * dw
+        b -= learning_rate * db
+        
+        # 计算损失（可选）
+        if i % 100 == 0:
+            loss = -(1/m) * np.sum(y * np.log(y_pred) + (1-y) * np.log(1-y_pred))
+            print(f"Iteration {i}, Loss: {loss:.4f}")
+    
+    return w, b
+
+def predict(X, w, b):
+    z = X @ w + b
+    y_pred = sigmoid(z)
+    return (y_pred >= 0.5).astype(int)
+```
+
+---
+
+## 6️⃣ 多分类扩展
+
+逻辑回归可以通过以下方式扩展到多分类问题：
+
+### One-vs-Rest (OvR)
+
+为每个类别训练一个二分类器，选择概率最大的类别：
+
+```python
+from sklearn.linear_model import LogisticRegression
+
+# multi_class='ovr' 表示 One-vs-Rest 策略
+model = LogisticRegression(multi_class='ovr')
+model.fit(X_train, y_train)
+```
+
+### Softmax 回归（多项逻辑回归）
+
+使用 Softmax 函数直接输出多个类别的概率分布：
+
+```math
+P(y=k|\mathbf{x}) = \frac{e^{\mathbf{w}_k^T\mathbf{x}}}{\sum_{j=1}^{K}e^{\mathbf{w}_j^T\mathbf{x}}}
+```
+
+```python
+model = LogisticRegression(multi_class='multinomial', solver='lbfgs')
+model.fit(X_train, y_train)
+```
+
+---
+
+## 7️⃣ 优缺点分析
+
+### ✅ 优点
+
+- **概率输出**：不仅给出分类结果，还能输出概率，便于评估不确定性
+- **简单高效**：计算复杂度低，适合大规模数据
+- **可解释性强**：系数反映特征对分类的影响（正相关或负相关）
+- **正则化支持**：易于添加 L1/L2 正则化防止过拟合
+
+### ❌ 缺点
+
+- **线性决策边界**：只能处理线性可分或近似线性可分的问题
+- **特征工程依赖**：需要手动构造特征来捕捉非线性关系
+- **对异常值敏感**：极端值可能影响模型性能
+- **类别不平衡**：在不平衡数据集上表现较差
+
+---
+
+## 8️⃣ 实际应用案例
+
+### 案例1：信用卡欺诈检测
+
+```python
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LogisticRegression
+
+# 标准化特征
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X_train)
+
+# 处理类别不平衡（使用 class_weight）
+model = LogisticRegression(class_weight='balanced', max_iter=1000)
+model.fit(X_scaled, y_train)
+
+# 预测概率
+y_proba = model.predict_proba(X_test)[:, 1]
+
+# 调整阈值（提高召回率）
+threshold = 0.3
+y_pred_custom = (y_proba >= threshold).astype(int)
+```
+
+### 案例2：医疗诊断
+
+```python
+# 使用 L1 正则化进行特征选择
+from sklearn.linear_model import LogisticRegression
+
+model = LogisticRegression(penalty='l1', solver='liblinear', C=0.1)
+model.fit(X_train, y_train)
+
+# 查看重要特征
+feature_importance = pd.DataFrame({
+    'feature': feature_names,
+    'coefficient': model.coef_[0]
+}).sort_values('coefficient', key=abs, ascending=False)
+
+print("重要特征:")
+print(feature_importance[feature_importance.coefficient != 0])
+```
+
+---
+
+## 9️⃣ 正则化
+
+为防止过拟合，通常添加正则化项：
+
+### L2 正则化（Ridge）
+
+```math
+J(\mathbf{w}) = -\frac{1}{m}\sum_{i=1}^{m}[y^{(i)}\log(h(\mathbf{x}^{(i)})) + (1-y^{(i)})\log(1-h(\mathbf{x}^{(i)}))] + \frac{\lambda}{2m}\sum_{j=1}^{n}w_j^2
+```
+
+### L1 正则化（Lasso）
+
+```math
+J(\mathbf{w}) = -\frac{1}{m}\sum_{i=1}^{m}[y^{(i)}\log(h(\mathbf{x}^{(i)})) + (1-y^{(i)})\log(1-h(\mathbf{x}^{(i)}))] + \frac{\lambda}{m}\sum_{j=1}^{n}|w_j|
+```
+
+```python
+# L2 正则化（默认）
+model_l2 = LogisticRegression(penalty='l2', C=1.0)
+
+# L1 正则化
+model_l1 = LogisticRegression(penalty='l1', solver='liblinear', C=1.0)
+
+# 注意：C 是正则化强度的倒数，C 越小，正则化越强
+```
+
+---
+
+## 🎯 关键要点
+
+1. 逻辑回归是**分类算法**，通过 Sigmoid 函数输出概率
+2. 使用**交叉熵损失**和**梯度下降**优化参数
+3. 输出值表示样本属于正类的**概率**，通常以 0.5 为阈值
+4. 可以通过 **One-vs-Rest** 或 **Softmax** 扩展到多分类
+5. 支持 **L1/L2 正则化**防止过拟合，L1 还能实现特征选择
+6. 适用于**线性可分**或**近似线性可分**的二分类问题
+

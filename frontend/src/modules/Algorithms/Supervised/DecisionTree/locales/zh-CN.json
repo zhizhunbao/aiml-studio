@@ -1,0 +1,17 @@
+{
+  "decision_tree": {
+    "title": "决策树",
+    "description": "基于树形结构的分类和回归算法",
+    "parameter": {
+      "max_depth": "最大深度",
+      "min_samples_split": "最小分裂样本数"
+    },
+    "result": {
+      "accuracy": "准确率",
+      "tree_depth": "树深度",
+      "n_leaves": "叶子节点数",
+      "f1_score": "F1 分数"
+    }
+  }
+}
+

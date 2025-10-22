@@ -1,0 +1,254 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const PCADemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [nComponents, setNComponents] = useState(2);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runPCA = async () => {
+    setLoading(true);
+    logger.info('Started PCA transformation', { nComponents });
+    
+    try {
+      const response = await axios.post('/api/algorithms/unsupervised/pca/transform', {
+        n_components: nComponents,
+      });
+      setResult(response.data);
+      logger.info('PCA transformation completed successfully', { result: response.data });
+    } catch (error) {
+      logger.error('PCA transformation failed', { error: error.message, nComponents });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'pca',
+          nComponents,
+          message: 'PCA transformation failed. Please check if backend service is running'
+        }
+      });
+      setResult({ error: 'PCA transformation failed. Please check the console for details.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="demo-container">
+      <div className="demo-parameters">
+        <h3>PCA Parameters</h3>
+        <div className="parameter-group">
+          <label htmlFor="nComponents">Number of Components:</label>
+          <input
+            id="nComponents"
+            type="number"
+            value={nComponents}
+            onChange={(e) => setNComponents(parseInt(e.target.value))}
+            min="1"
+            max="10"
+          />
+        </div>
+        <button onClick={runPCA} disabled={loading}>
+          {loading ? 'Transforming...' : 'Apply PCA'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="demo-results">
+          <h3>PCA Results</h3>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+# Principal Component Analysis (PCA)
+
+Principal Component Analysis (PCA) is a dimensionality reduction technique that transforms data into a lower-dimensional space while preserving as much variance as possible. It's widely used for data visualization, noise reduction, and feature extraction.
+
+## How PCA Works
+
+PCA works by finding the directions (principal components) in which the data varies the most. The algorithm follows these steps:
+
+### 1. Data Centering
+- Subtract the mean from each data point
+- Ensures the data is centered around the origin
+
+### 2. Covariance Matrix Calculation
+- Compute the covariance matrix of the centered data
+- Shows how features vary together
+
+### 3. Eigenvalue Decomposition
+- Find eigenvalues and eigenvectors of the covariance matrix
+- Eigenvalues represent the amount of variance explained by each component
+- Eigenvectors represent the directions of maximum variance
+
+### 4. Component Selection
+- Select the top k eigenvectors (principal components)
+- Transform the data to the new coordinate system
+
+## Mathematical Foundation
+
+For a dataset X with n samples and p features:
+
+1. **Center the data**: X_centered = X - μ
+2. **Compute covariance matrix**: C = (1/n) * X_centered^T * X_centered
+3. **Find eigenvalues and eigenvectors**: C * v = λ * v
+4. **Sort by eigenvalues**: λ₁ ≥ λ₂ ≥ ... ≥ λₚ
+5. **Select top k components**: V_k = [v₁, v₂, ..., vₖ]
+6. **Transform data**: Y = X_centered * V_k
+
+## Interactive Demo
+
+Try PCA transformation with different parameters:
+
+<PCADemo />
+
+## Implementation Example
+
+Here's a PCA implementation using Python and scikit-learn:
+
+```python
+from sklearn.decomposition import PCA
+from sklearn.datasets import load_iris
+import matplotlib.pyplot as plt
+
+# Load sample data
+iris = load_iris()
+X = iris.data
+y = iris.target
+
+# Apply PCA
+pca = PCA(n_components=2)
+X_pca = pca.fit_transform(X)
+
+# Visualize results
+plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y, cmap='viridis')
+plt.xlabel('First Principal Component')
+plt.ylabel('Second Principal Component')
+plt.title('PCA of Iris Dataset')
+plt.show()
+
+# Explained variance ratio
+print(f'Explained variance ratio: {pca.explained_variance_ratio_}')
+```
+
+## Key Concepts
+
+### Explained Variance
+- Percentage of total variance explained by each component
+- Helps determine how many components to keep
+- Sum of all explained variance ratios equals 1.0
+
+### Principal Components
+- Orthogonal directions of maximum variance
+- First component captures the most variance
+- Subsequent components capture remaining variance
+
+### Eigenvalues
+- Measure of variance along each principal component
+- Larger eigenvalues indicate more important components
+
+## Applications
+
+- **Data Visualization**: Reduce high-dimensional data to 2D or 3D for plotting
+- **Noise Reduction**: Remove components with low variance (often noise)
+- **Feature Extraction**: Create new features that capture important patterns
+- **Data Compression**: Reduce storage requirements while preserving information
+- **Preprocessing**: Prepare data for other machine learning algorithms
+
+## Advantages
+
+- **Linear Transformation**: Simple and interpretable
+- **Variance Preservation**: Maintains maximum variance in reduced dimensions
+- **Orthogonal Components**: Principal components are uncorrelated
+- **Computationally Efficient**: Fast computation for most datasets
+- **No Parameters**: No hyperparameters to tune (except number of components)
+
+## Limitations
+
+- **Linear Assumption**: Assumes linear relationships between features
+- **Variance-Based**: May not preserve important non-variance information
+- **Interpretability**: Principal components may not have clear meaning
+- **Sensitive to Scaling**: Requires feature standardization for meaningful results
+- **Information Loss**: Some information is always lost in dimensionality reduction
+
+## Parameter Selection
+
+### Number of Components
+- **Variance Threshold**: Keep components that explain 95% of variance
+- **Elbow Method**: Look for the "elbow" in explained variance plot
+- **Cross-Validation**: Use downstream task performance to select components
+- **Visualization**: Use 2-3 components for visualization purposes
+
+### Data Preprocessing
+- **Standardization**: Always standardize features before PCA
+- **Missing Values**: Handle missing values before applying PCA
+- **Outliers**: Consider removing outliers as they can affect principal components
+
+## Best Practices
+
+1. **Standardize Features**: Use StandardScaler before applying PCA
+2. **Check Variance**: Plot explained variance ratio to understand data structure
+3. **Validate Results**: Use cross-validation to ensure PCA improves performance
+4. **Interpret Components**: Try to understand what each component represents
+5. **Monitor Information Loss**: Track how much variance is lost
+
+## Advanced Techniques
+
+### Kernel PCA
+- Non-linear version of PCA using kernel functions
+- Can capture non-linear relationships in data
+- More computationally expensive than linear PCA
+
+### Incremental PCA
+- Memory-efficient version for large datasets
+- Processes data in batches
+- Useful when data doesn't fit in memory
+
+### Sparse PCA
+- Produces sparse principal components
+- Easier to interpret than dense components
+- Good for feature selection
+
+## Comparison with Other Methods
+
+### vs Linear Discriminant Analysis (LDA)
+- **Goal**: PCA maximizes variance, LDA maximizes class separation
+- **Supervision**: PCA is unsupervised, LDA is supervised
+- **Components**: PCA components are orthogonal, LDA components are not
+
+### vs t-SNE
+- **Purpose**: PCA for linear reduction, t-SNE for non-linear visualization
+- **Distance**: PCA preserves global structure, t-SNE preserves local structure
+- **Speed**: PCA is faster, t-SNE is slower
+
+## Visualization
+
+PCA is commonly used for data visualization:
+
+```python
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+# 2D visualization
+pca_2d = PCA(n_components=2)
+X_2d = pca_2d.fit_transform(X)
+plt.scatter(X_2d[:, 0], X_2d[:, 1], c=y)
+plt.show()
+
+# 3D visualization
+pca_3d = PCA(n_components=3)
+X_3d = pca_3d.fit_transform(X)
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+ax.scatter(X_3d[:, 0], X_3d[:, 1], X_3d[:, 2], c=y)
+plt.show()
+```

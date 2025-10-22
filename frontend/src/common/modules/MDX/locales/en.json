@@ -1,0 +1,37 @@
+{
+  "app": {
+    "title": "AIML Studio",
+    "subtitle": "Interactive Machine Learning Algorithm Learning Platform"
+  },
+  "nav": {
+    "supervised": "Supervised Learning",
+    "unsupervised": "Unsupervised",
+    "neuralNetworks": "Neural Networks"
+  },
+  "common": {
+    "run": "Run Training",
+    "reset": "Reset",
+    "viewCode": "View Code",
+    "showCode": "Show Code",
+    "hideCode": "Hide Code",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "difficulty": "Difficulty",
+    "time": "Estimated Time",
+    "minutes": "minutes",
+    "selectDataset": "Select Dataset",
+    "datasetInfo": "Dataset Information",
+    "samples": "Samples",
+    "features": "Features",
+    "classes": "Classes",
+    "description": "Description",
+    "tableOfContents": "Table of Contents"
+  },
+  "difficulty": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  }
+}
+

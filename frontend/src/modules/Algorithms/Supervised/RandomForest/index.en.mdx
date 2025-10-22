@@ -1,0 +1,483 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { Demo, ParameterSlider, Button, Chart, AlgorithmHeader, PlayIcon, ResetIcon } from '@common/modules/MDX/MDXComponents';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const RandomForestDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [nEstimators, setNEstimators] = useState(100);
+  const [maxDepth, setMaxDepth] = useState(10);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('Started training random forest model', { nEstimators, maxDepth });
+    
+    try {
+      const response = await axios.post('/api/algorithms/supervised/random-forest/train', {
+        n_estimators: nEstimators,
+        max_depth: maxDepth,
+      });
+      setResult(response.data);
+      logger.info('Random forest model trained successfully', { result: response.data });
+    } catch (error) {
+      logger.error('Random forest training failed', { error: error.message, nEstimators, maxDepth });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'random-forest',
+          nEstimators,
+          maxDepth,
+          message: 'Training failed. Please check if backend service is running'
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetParameters = () => {
+    setNEstimators(100);
+    setMaxDepth(10);
+    setResult(null);
+  };
+
+  return (
+    <Demo title="⚡ Interactive Experiment">
+      <div className="space-y-6">
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <h4 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">📊 Parameters</h4>
+          
+          <ParameterSlider
+            label="Number of Estimators (N Estimators)"
+            value={nEstimators}
+            onChange={setNEstimators}
+            min={10}
+            max={500}
+            step={10}
+          />
+          
+          <ParameterSlider
+            label="Maximum Depth (Max Depth)"
+            value={maxDepth}
+            onChange={setMaxDepth}
+            min={1}
+            max={30}
+            step={1}
+          />
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={runTraining} icon={PlayIcon} disabled={loading}>
+              {loading ? 'Training...' : 'Run Training'}
+            </Button>
+            <Button onClick={resetParameters} variant="secondary" icon={ResetIcon}>
+              Reset
+            </Button>
+          </div>
+        </div>
+
+        {result && (
+          <div className="space-y-4">
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">🌲 Training Results</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Accuracy:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.accuracy?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">F1 Score:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.f1_score?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Training Time:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.training_time?.toFixed(3)}s</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Number of Trees:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.n_trees}</span>
+                </div>
+              </div>
+            </div>
+
+            {result.feature_importance && (
+              <Chart
+                data={result.feature_importance}
+                layout={{
+                  title: 'Feature Importance',
+                  xaxis: { title: 'Importance' },
+                  yaxis: { title: 'Feature' },
+                  height: 400,
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </Demo>
+  );
+};
+
+<AlgorithmHeader 
+  title="Random Forest"
+  difficulty="intermediate"
+  stars={3}
+  time={30}
+/>
+
+## 1️⃣ Algorithm Overview
+
+**Random Forest** is a powerful algorithm based on **Ensemble Learning** that improves prediction performance by building multiple decision trees and using **voting**. It combines **Bagging** (Bootstrap Aggregating) and **random feature selection** techniques, significantly reducing the overfitting risk of single decision trees.
+
+### Core Concepts
+
+- **Random sampling** (with replacement, Bootstrap) from the training set to build multiple subsets
+- Train a decision tree on each subset
+- Only consider **randomly selected feature subsets** at each split
+- Use **majority voting** (classification) or **averaging** (regression) for final prediction
+
+### Use Cases
+
+- 🏥 **Disease Diagnosis**: Predict diseases by combining multiple features
+- 💳 **Credit Scoring**: Assess loan default risk
+- 📊 **Stock Prediction**: Forecast stock price trends
+- 🎯 **Recommendation Systems**: User behavior prediction and content recommendation
+
+---
+
+## 2️⃣ History
+
+- **1994** - **Tin Kam Ho** proposed Random Subspace Method
+- **1996** - **Leo Breiman** introduced **Bagging** (Bootstrap Aggregating)
+- **2001** - **Leo Breiman** formally proposed **Random Forest**, combining Bagging and random feature selection
+- **2003** - Breiman and Cutler refined Random Forest theory and promoted its application
+- **21st Century** - Random Forest became one of the most popular algorithms in Kaggle competitions and industry
+
+---
+
+## 3️⃣ Mathematical Principles
+
+### Bagging (Bootstrap Aggregating)
+
+Perform $B$ rounds of **random sampling with replacement** from original dataset $D$ to generate $B$ subsets $D_1, D_2, ..., D_B$:
+
+```math
+D_b = \{(\mathbf{x}_i, y_i)\}, \quad i \sim Uniform(1, N)
+```
+
+Train a base learner (decision tree) $h_b$ on each subset.
+
+### Random Feature Selection
+
+At each node split, instead of considering all $d$ features, randomly select $m$ features ($m \ll d$):
+
+```math
+m = \lfloor\sqrt{d}\rfloor \quad \text{(Classification)}
+```
+
+```math
+m = \lfloor d/3 \rfloor \quad \text{(Regression)}
+```
+
+### Ensemble Prediction
+
+**Classification**: Majority voting
+
+```math
+H(\mathbf{x}) = \arg\max_{y}\sum_{b=1}^{B}I(h_b(\mathbf{x}) = y)
+```
+
+**Regression**: Averaging
+
+```math
+H(\mathbf{x}) = \frac{1}{B}\sum_{b=1}^{B}h_b(\mathbf{x})
+```
+
+### Out-of-Bag Error
+
+Each sample appears in approximately **63.2%** of Bootstrap samples ($1 - e^{-1} \approx 0.632$), with remaining **36.8%** serving as validation set:
+
+```math
+OOB\_Error = \frac{1}{N}\sum_{i=1}^{N}I(H_{OOB}^{(i)}(\mathbf{x}_i) \neq y_i)
+```
+
+---
+
+## 4️⃣ Interactive Experiment ⚡
+
+Adjust key Random Forest parameters and observe their impact on performance and training time:
+
+<RandomForestDemo />
+
+---
+
+## 5️⃣ Code Implementation
+
+### Python Implementation (scikit-learn)
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+import numpy as np
+import pandas as pd
+
+# Load data
+from sklearn.datasets import load_iris
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# Split dataset
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Create Random Forest classifier
+model = RandomForestClassifier(
+    n_estimators=100,        # Number of trees
+    max_depth=10,            # Maximum depth
+    min_samples_split=2,     # Minimum samples for split
+    min_samples_leaf=1,      # Minimum samples per leaf
+    max_features='sqrt',     # Number of features to consider
+    bootstrap=True,          # Use Bootstrap sampling
+    oob_score=True,          # Calculate OOB error
+    n_jobs=-1,               # Parallel computing
+    random_state=42
+)
+
+# Train model
+model.fit(X_train, y_train)
+
+# Predict
+y_pred = model.predict(X_test)
+
+# Evaluate
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.4f}")
+print(f"OOB Error: {1 - model.oob_score_:.4f}")
+
+# Feature importance
+feature_importance = pd.DataFrame({
+    'feature': iris.feature_names,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+print("\nFeature Importance:")
+print(feature_importance)
+```
+
+### Random Forest Regression
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+
+# Regression task
+model = RandomForestRegressor(
+    n_estimators=100,
+    max_depth=10,
+    random_state=42
+)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+```
+
+---
+
+## 6️⃣ Feature Importance Analysis
+
+Random Forest can calculate feature importance to understand which features have the most impact on predictions:
+
+### Gini Importance
+
+```math
+Importance(X_j) = \frac{1}{B}\sum_{b=1}^{B}\sum_{t \in T_b}I(v_t = X_j) \cdot \Delta Gini_t
+```
+
+Where $\Delta Gini_t$ is the decrease in Gini index after node $t$ splits.
+
+### Python Implementation
+
+```python
+import matplotlib.pyplot as plt
+
+# Get feature importance
+importances = model.feature_importances_
+indices = np.argsort(importances)[::-1]
+
+# Visualize
+plt.figure(figsize=(10, 6))
+plt.title("Feature Importance")
+plt.bar(range(X.shape[1]), importances[indices])
+plt.xticks(range(X.shape[1]), [iris.feature_names[i] for i in indices], rotation=45)
+plt.tight_layout()
+plt.show()
+```
+
+### Permutation Importance
+
+```python
+from sklearn.inspection import permutation_importance
+
+# Calculate permutation importance
+perm_importance = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=42)
+
+print("Permutation Importance:")
+for i in perm_importance.importances_mean.argsort()[::-1]:
+    print(f"{iris.feature_names[i]}: {perm_importance.importances_mean[i]:.4f} +/- {perm_importance.importances_std[i]:.4f}")
+```
+
+---
+
+## 7️⃣ Hyperparameter Tuning
+
+### Grid Search
+
+```python
+from sklearn.model_selection import GridSearchCV
+
+param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [5, 10, 15, None],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'max_features': ['sqrt', 'log2', None]
+}
+
+grid_search = GridSearchCV(
+    RandomForestClassifier(random_state=42),
+    param_grid,
+    cv=5,
+    scoring='accuracy',
+    n_jobs=-1
+)
+
+grid_search.fit(X_train, y_train)
+
+print("Best parameters:", grid_search.best_params_)
+print("Best score:", grid_search.best_score_)
+```
+
+### Random Search
+
+```python
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+
+param_dist = {
+    'n_estimators': randint(50, 500),
+    'max_depth': randint(5, 30),
+    'min_samples_split': randint(2, 20),
+    'min_samples_leaf': randint(1, 10),
+    'max_features': ['sqrt', 'log2', None]
+}
+
+random_search = RandomizedSearchCV(
+    RandomForestClassifier(random_state=42),
+    param_dist,
+    n_iter=100,
+    cv=5,
+    random_state=42,
+    n_jobs=-1
+)
+
+random_search.fit(X_train, y_train)
+```
+
+---
+
+## 8️⃣ Pros and Cons
+
+### ✅ Advantages
+
+- **High Accuracy**: Ensemble of multiple trees significantly improves prediction
+- **Overfitting Resistant**: Reduces variance through randomness and ensemble
+- **Handles High-Dimensional Data**: Effectively processes large numbers of features
+- **Feature Importance**: Automatically evaluates feature contributions
+- **Robust**: Insensitive to missing values and outliers
+- **Parallelizable**: Trees are independent and can be trained in parallel
+
+### ❌ Disadvantages
+
+- **Complex Model**: Contains many trees, large model size
+- **Slow Training**: Requires training many decision trees
+- **Poor Interpretability**: Difficult to understand the entire forest's decision logic
+- **High Memory Usage**: Needs to store multiple trees
+- **Weak Extrapolation**: Cannot predict values beyond training data range
+
+---
+
+## 9️⃣ Real-world Applications
+
+### Case 1: Credit Card Fraud Detection
+
+```python
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+
+# Handle class imbalance
+model = RandomForestClassifier(
+    n_estimators=200,
+    max_depth=15,
+    class_weight='balanced',  # Automatically adjust class weights
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+print(classification_report(y_test, y_pred))
+print(confusion_matrix(y_test, y_pred))
+```
+
+### Case 2: House Price Prediction
+
+```python
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+
+model = RandomForestRegressor(
+    n_estimators=300,
+    max_depth=20,
+    min_samples_split=5,
+    n_jobs=-1,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"MSE: {mse:.2f}")
+print(f"R² Score: {r2:.4f}")
+```
+
+---
+
+## 🔟 Algorithm Comparison
+
+| Algorithm | Accuracy | Training Speed | Interpretability | Overfitting Resistance | Feature Importance |
+|-----------|----------|----------------|------------------|------------------------|-------------------|
+| Random Forest | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Decision Tree | ⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ |
+| GBDT | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+| XGBoost | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
+
+---
+
+## 🎯 Key Takeaways
+
+1. Random Forest improves prediction performance by **ensembling multiple decision trees**
+2. Combines **Bagging** (Bootstrap sampling) and **random feature selection** techniques
+3. Significantly reduces **overfitting risk**, more stable than single decision trees
+4. Can calculate **feature importance** to help with feature selection and model interpretation
+5. **Out-of-Bag Error** (OOB Error) can be used for model evaluation without additional validation set
+6. Key hyperparameters: **n_estimators** (number of trees), **max_depth** (maximum depth), **max_features** (number of features)
+7. Suitable for both **classification** and **regression** tasks, performs excellently in many real-world problems
+

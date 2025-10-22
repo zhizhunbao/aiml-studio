@@ -1,0 +1,17 @@
+{
+  "linear_regression": {
+    "title": "线性回归",
+    "description": "通过拟合线性函数预测连续值",
+    "parameter": {
+      "learning_rate": "学习率",
+      "iterations": "迭代次数"
+    },
+    "result": {
+      "coefficient": "模型系数",
+      "intercept": "截距",
+      "r2_score": "R² 分数",
+      "mse": "均方误差"
+    }
+  }
+}
+

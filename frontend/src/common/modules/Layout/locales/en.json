@@ -1,0 +1,13 @@
+{
+  "common": {
+    "hideCode": "Hide Code",
+    "showCode": "Show Code",
+    "minutes": "minutes"
+  },
+  "difficulty": {
+    "beginner": "Beginner",
+    "intermediate": "Intermediate",
+    "advanced": "Advanced"
+  }
+}
+

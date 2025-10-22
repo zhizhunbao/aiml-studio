@@ -1,0 +1,529 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { 
+  Chart, 
+  AlgorithmHeader, 
+  InteractiveExperiment,
+  ExperimentPanel,
+  ParameterControl,
+  ResultCard
+} from '@common/modules/MDX/MDXComponents';
+import { DatasetInfo, DatasetPreview, useDataset } from '@modules/Datasets';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+import { Database, Settings } from 'lucide-react';
+
+export const LinearRegressionDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  
+  // Fixed dataset: California Housing
+  const FIXED_DATASET = 'california_housing';
+  
+  const [learningRate, setLearningRate] = useState(0.01);
+  const [iterations, setIterations] = useState(1000);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  
+  // Load dataset using Datasets module
+  const { dataset, loading: loadingDataset, error: datasetError } = useDataset(FIXED_DATASET);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('Started training linear regression model', { dataset: FIXED_DATASET, learningRate, iterations });
+    
+    try {
+      const response = await axios.post('/api/algorithms/supervised/linear-regression/train', {
+        dataset: FIXED_DATASET,
+        learning_rate: learningRate,
+        iterations: iterations,
+      });
+      setResult(response.data);
+      logger.info('Linear regression model trained successfully', { result: response.data });
+    } catch (error) {
+      logger.error('Linear regression training failed', { error: error.message, dataset: FIXED_DATASET, learningRate, iterations });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'linear-regression',
+          dataset: FIXED_DATASET,
+          learningRate,
+          iterations,
+          message: 'Training failed. Please check if backend service is running'
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetParameters = () => {
+    setLearningRate(0.01);
+    setIterations(1000);
+    setResult(null);
+  };
+
+  return (
+    <InteractiveExperiment
+      description="Adjust parameters to observe the training process and fitting effect of the linear regression model"
+      onRun={runTraining}
+      onReset={resetParameters}
+      loading={loading}
+      result={result && (
+        <>
+          <ResultCard title="📈 Training Results" variant="success" className="mb-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="text-sm text-gray-600">Coefficient (w)</div>
+                <div className="text-lg font-semibold">{result.coefficients?.toFixed(4)}</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="text-sm text-gray-600">Intercept (b)</div>
+                <div className="text-lg font-semibold">{result.intercept?.toFixed(4)}</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="text-sm text-gray-600">R² Score</div>
+                <div className="text-lg font-semibold">{result.r2_score?.toFixed(4)}</div>
+              </div>
+              <div className="bg-white p-3 rounded-lg border">
+                <div className="text-sm text-gray-600">MSE</div>
+                <div className="text-lg font-semibold">{result.mse?.toFixed(4)}</div>
+              </div>
+            </div>
+          </ResultCard>
+
+          {result.plot_data && (
+            <ResultCard title="📊 Fitting Visualization" variant="info">
+              <Chart
+                data={result.plot_data}
+                layout={{
+                  title: 'Linear Regression Fitting Result',
+                  xaxis: { title: 'X' },
+                  yaxis: { title: 'Y' },
+                  height: 400,
+                }}
+              />
+            </ResultCard>
+          )}
+        </>
+      )}
+    >
+      {/* Dataset & Feature Description */}
+      <ExperimentPanel icon={Database}>
+        <DatasetInfo datasetName={FIXED_DATASET} />
+        
+        {datasetError && (
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-700 dark:text-red-300 text-sm">
+            ⚠️ {datasetError}
+          </div>
+        )}
+        
+        {/* Feature Description */}
+        <div className="mt-4 space-y-4 text-sm">
+          <div>
+            <div className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <span className="text-lg">🎯</span>
+              Prediction Target
+            </div>
+            <div className="ml-6 space-y-1 text-gray-700 dark:text-gray-300">
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 px-2 py-1 rounded text-xs font-medium">MEDV</span>
+                <span>- Median house value (in $100,000s)</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <span className="text-lg">📊</span>
+              Input Features
+            </div>
+            <div className="ml-6 grid grid-cols-1 sm:grid-cols-2 gap-2 text-gray-700 dark:text-gray-300">
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium">MedInc</span>
+                <span>- Median income</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium">HouseAge</span>
+                <span>- Median house age</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium">AveRooms</span>
+                <span>- Average rooms</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium">AveBedrms</span>
+                <span>- Average bedrooms</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium">Population</span>
+                <span>- Block population</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium">AveOccup</span>
+                <span>- Average occupancy</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium">Latitude</span>
+                <span>- Latitude</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 px-2 py-1 rounded text-xs font-medium">Longitude</span>
+                <span>- Longitude</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="font-semibold text-gray-900 dark:text-gray-100 mb-3 flex items-center gap-2">
+              <span className="text-lg">💡</span>
+              Experiment Goal
+            </div>
+            <div className="ml-6 text-gray-700 dark:text-gray-300">
+              Use <strong className="text-gray-900 dark:text-gray-100">8 features</strong> to predict California house prices and explore linear relationships between features and prices
+            </div>
+          </div>
+        </div>
+        
+        <DatasetPreview datasetName={FIXED_DATASET} maxRows={5} className="mt-4" />
+      </ExperimentPanel>
+
+      {/* Parameter Panel */}
+      <ExperimentPanel title="🎛️ Parameter Adjustment" icon={Settings}>
+        {/* Preset Configuration Buttons */}
+        <div className="mb-6">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Quick Setup</div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => {
+                setLearningRate(0.01);
+                setIterations(1000);
+                setTimeout(() => runTraining(), 100);
+              }}
+              className="px-3 py-2 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 rounded-lg text-sm font-medium hover:bg-blue-200 dark:hover:bg-blue-900/60 transition-colors"
+            >
+              🚀 Quick Start (Recommended)
+            </button>
+            <button
+              onClick={() => {
+                setLearningRate(0.005);
+                setIterations(2000);
+                setTimeout(() => runTraining(), 100);
+              }}
+              className="px-3 py-2 bg-green-100 dark:bg-green-900/40 text-green-800 dark:text-green-200 rounded-lg text-sm font-medium hover:bg-green-200 dark:hover:bg-green-900/60 transition-colors"
+            >
+              🎯 Precise Training
+            </button>
+            <button
+              onClick={() => {
+                setLearningRate(0.02);
+                setIterations(500);
+                setTimeout(() => runTraining(), 100);
+              }}
+              className="px-3 py-2 bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-200 rounded-lg text-sm font-medium hover:bg-orange-200 dark:hover:bg-orange-900/60 transition-colors"
+            >
+              ⚡ Fast Training
+            </button>
+          </div>
+        </div>
+
+        {/* Parameter Explanation */}
+        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          <div className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-3">💡 What Do These Mean?</div>
+          <div className="space-y-3 text-sm text-blue-800 dark:text-blue-200">
+            <div>
+              <span className="font-semibold">Learning Rate</span>: Think of it as "step size"
+              <div className="mt-1 pl-3 text-xs">
+                • Too large → Like rushing, may overshoot the target 🏃‍♂️💨<br/>
+                • Too small → Like baby steps, very slow progress 🐢<br/>
+                • Just right → Steady and efficient ✨
+              </div>
+            </div>
+            <div>
+              <span className="font-semibold">Iterations</span>: Think of it as "practice rounds"
+              <div className="mt-1 pl-3 text-xs">
+                • Too few → Stops before learning 📝<br/>
+                • Too many → Over-practicing, memorizing instead of understanding 📚<br/>
+                • Just right → Learns the pattern well 🎯
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Manual Adjustment */}
+        <div className="space-y-4">
+          <div className="text-sm font-medium text-gray-700 dark:text-gray-300">Manual Adjustment</div>
+          
+          <ParameterControl
+            label="Learning Rate (How big each step is)"
+            description="Larger value = bigger adjustments; Smaller value = smaller adjustments"
+            value={learningRate}
+            onChange={(value) => {
+              setLearningRate(value);
+              // Auto-run when parameters change
+              setTimeout(() => runTraining(), 300);
+            }}
+            min={0.001}
+            max={0.1}
+            step={0.001}
+            recommendedValue={0.01}
+            recommendedReason="0.01 is a stable and efficient value, great for beginners"
+          />
+          
+          <ParameterControl
+            label="Iterations (How many times to practice)"
+            description="The model will practice this many times to learn the pattern"
+            value={iterations}
+            onChange={(value) => {
+              setIterations(value);
+              // Auto-run when parameters change
+              setTimeout(() => runTraining(), 300);
+            }}
+            min={100}
+            max={5000}
+            step={100}
+            recommendedValue={1000}
+            recommendedReason="1000 rounds are usually enough to learn without over-practicing"
+          />
+        </div>
+      </ExperimentPanel>
+    </InteractiveExperiment>
+  );
+};
+
+<AlgorithmHeader 
+  title="Linear Regression"
+  difficulty="beginner"
+  stars={2}
+  time={15}
+/>
+
+## 1️⃣ Algorithm Overview
+
+**Linear Regression** is one of the most fundamental and important supervised learning algorithms in machine learning. It models the linear relationship between independent variables X and dependent variable Y by fitting a straight line (or hyperplane in high-dimensional space).
+
+### Core Concepts
+
+- Assumes a **linear relationship** between features and target values
+- Finds the optimal fitting line by minimizing the **sum of squared errors** between predicted and actual values
+- Uses **gradient descent** or **normal equation** to solve for optimal parameters
+
+### Application Scenarios
+
+- 📈 **House Price Prediction**: Predict prices based on area, location, etc.
+- 💰 **Sales Forecasting**: Predict future sales based on historical data
+- 📊 **Trend Analysis**: Analyze correlations and trends between variables
+- 🌡️ **Temperature Prediction**: Predict future temperature based on historical data
+
+---
+
+## 2️⃣ Historical Development
+
+The history of linear regression dates back to the early 19th century:
+
+- **1805** - French mathematician **Adrien-Marie Legendre** first proposed the **method of least squares**
+- **1809** - German mathematician **Carl Friedrich Gauss** independently discovered and systematized the least squares method
+- **1886** - British statistician **Francis Galton** first used the term "Regression" when studying the relationship between father and son heights
+- **20th Century** - With the development of computers, linear regression became a cornerstone of statistics and machine learning
+
+---
+
+## 3️⃣ Mathematical Principles
+
+### Model Representation
+
+For univariate linear regression, the model can be expressed as:
+
+```math
+y = wx + b
+```
+
+For multivariate linear regression:
+
+```math
+y = w_1x_1 + w_2x_2 + ... + w_nx_n + b = \mathbf{w}^T\mathbf{x} + b
+```
+
+Where:
+- $y$ is the predicted value
+- $\mathbf{x}$ is the feature vector
+- $\mathbf{w}$ is the weight vector
+- $b$ is the bias term (intercept)
+
+### Loss Function
+
+Using **Mean Squared Error (MSE)** as the loss function:
+
+```math
+J(\mathbf{w}, b) = \frac{1}{2m}\sum_{i=1}^{m}(h_{\mathbf{w},b}(\mathbf{x}^{(i)}) - y^{(i)})^2
+```
+
+### Gradient Descent
+
+Update parameters through gradient descent:
+
+```math
+w_j := w_j - \alpha \frac{\partial J}{\partial w_j}
+```
+
+```math
+b := b - \alpha \frac{\partial J}{\partial b}
+```
+
+Where $\alpha$ is the learning rate.
+
+---
+
+## 4️⃣ Interactive Experiment ⚡
+
+<LinearRegressionDemo />
+
+---
+
+## 5️⃣ Code Implementation
+
+### Python Implementation (using scikit-learn)
+
+```python
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_squared_error, r2_score
+
+# Generate sample data
+X = np.random.rand(100, 1) * 10
+y = 2.5 * X + 1.5 + np.random.randn(100, 1) * 2
+
+# Split train and test sets
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Create and train model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Predict
+y_pred = model.predict(X_test)
+
+# Evaluate
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Coefficient: {model.coef_[0][0]:.4f}")
+print(f"Intercept: {model.intercept_[0]:.4f}")
+print(f"MSE: {mse:.4f}")
+print(f"R² Score: {r2:.4f}")
+```
+
+### Gradient Descent from Scratch
+
+```python
+def linear_regression_gradient_descent(X, y, learning_rate=0.01, iterations=1000):
+    m, n = X.shape
+    w = np.zeros((n, 1))
+    b = 0
+    
+    for i in range(iterations):
+        # Predict
+        y_pred = X @ w + b
+        
+        # Calculate gradients
+        dw = (1/m) * X.T @ (y_pred - y)
+        db = (1/m) * np.sum(y_pred - y)
+        
+        # Update parameters
+        w -= learning_rate * dw
+        b -= learning_rate * db
+    
+    return w, b
+```
+
+---
+
+## 6️⃣ Pros and Cons
+
+### ✅ Advantages
+
+- **Simple and Intuitive**: Easy to understand and implement
+- **Computationally Efficient**: Fast training and prediction, suitable for large-scale data
+- **Highly Interpretable**: Coefficients directly reflect feature impact on target
+- **Robust**: Relatively less sensitive to outliers (compared to decision trees)
+
+### ❌ Disadvantages
+
+- **Linear Assumption**: Can only fit linear relationships, cannot handle complex nonlinear patterns
+- **Feature Engineering Dependent**: Requires manual feature construction to capture nonlinear relationships
+- **Multicollinearity**: Model becomes unstable when features are highly correlated
+- **Sensitive to Outliers**: Extreme values can significantly affect fitting results
+
+---
+
+## 7️⃣ Real-world Applications
+
+### Case 1: Boston Housing Price Prediction
+
+Predict house prices using 13 features like area, number of rooms, crime rate, etc.:
+
+```python
+from sklearn.datasets import load_boston
+from sklearn.preprocessing import StandardScaler
+
+# Load data
+boston = load_boston()
+X, y = boston.data, boston.target
+
+# Standardize features
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Train model
+model = LinearRegression()
+model.fit(X_scaled, y)
+
+# Feature importance analysis
+feature_importance = pd.DataFrame({
+    'feature': boston.feature_names,
+    'coefficient': model.coef_
+}).sort_values('coefficient', key=abs, ascending=False)
+```
+
+### Case 2: Advertising Spend and Sales
+
+Analyze the impact of TV, radio, and newspaper advertising spend on sales:
+
+```python
+# Multiple linear regression
+# y = w1*TV + w2*Radio + w3*Newspaper + b
+
+model = LinearRegression()
+model.fit(advertising_data[['TV', 'Radio', 'Newspaper']], 
+          advertising_data['Sales'])
+
+print(f"TV coefficient: {model.coef_[0]:.4f}")
+print(f"Radio coefficient: {model.coef_[1]:.4f}")
+print(f"Newspaper coefficient: {model.coef_[2]:.4f}")
+```
+
+---
+
+## 8️⃣ Further Reading
+
+- **Ridge Regression**: Add L2 regularization to prevent overfitting
+- **Lasso Regression**: Add L1 regularization for feature selection
+- **Polynomial Regression**: Capture nonlinear relationships through polynomial feature expansion
+- **Locally Weighted Regression**: Assign different weights to different regions
+
+---
+
+## 🎯 Key Takeaways
+
+1. Linear regression assumes a **linear relationship** between features and target
+2. Solve for optimal parameters using **least squares** or **gradient descent**
+3. **Learning rate** and **iterations** are important hyperparameters affecting training
+4. Model is simple and efficient but only suitable for linear or approximately linear problems
+5. Can improve model performance through **feature engineering** and **regularization**
+

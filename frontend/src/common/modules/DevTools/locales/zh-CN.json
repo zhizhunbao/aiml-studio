@@ -1,0 +1,33 @@
+{
+  "devTools": {
+    "title": "开发者工具",
+    "description": "监控日志、异常和系统信息",
+    "logs": "日志",
+    "exceptions": "异常",
+    "console": "控制台",
+    "total": "总计",
+    "unresolved": "未解决",
+    "resolved": "已解决",
+    "allLevels": "所有级别",
+    "allExceptions": "所有异常",
+    "search": "搜索日志...",
+    "searchExceptions": "搜索异常...",
+    "export": "导出",
+    "exportLogs": "导出日志",
+    "clear": "清空",
+    "clearLogs": "清空日志",
+    "clearExceptions": "清空异常",
+    "noLogs": "没有日志",
+    "noExceptions": "没有异常",
+    "showData": "显示数据",
+    "hideData": "隐藏数据",
+    "showContext": "显示上下文",
+    "hideContext": "隐藏上下文",
+    "showStack": "显示堆栈",
+    "hideStack": "隐藏堆栈",
+    "markResolved": "标记为已解决",
+    "consoleInfo": "浏览器控制台集成",
+    "consoleHint": "打开浏览器开发者工具 (F12) 查看控制台输出"
+  }
+}
+

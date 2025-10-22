@@ -1,0 +1,19 @@
+{
+  "dataset": {
+    "title": "数据集",
+    "selectDataset": "选择数据集",
+    "chooseDataset": "请选择一个数据集...",
+    "loading": "加载数据集中...",
+    "error": "加载数据集失败",
+    "samples": "样本数",
+    "features": "特征数",
+    "classes": "类别数",
+    "type": "类型",
+    "type.classification": "分类",
+    "type.regression": "回归",
+    "showingRows": "显示 {{count}} / {{total}} 行",
+    "preview": "数据预览",
+    "info": "数据集信息"
+  }
+}
+

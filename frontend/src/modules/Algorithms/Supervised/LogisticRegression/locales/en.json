@@ -1,0 +1,17 @@
+{
+  "logistic_regression": {
+    "title": "Logistic Regression",
+    "description": "Binary classification using Sigmoid function",
+    "parameter": {
+      "learning_rate": "Learning Rate",
+      "iterations": "Iterations"
+    },
+    "result": {
+      "accuracy": "Accuracy",
+      "precision": "Precision",
+      "recall": "Recall",
+      "f1_score": "F1 Score"
+    }
+  }
+}
+

@@ -1,0 +1,423 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { Demo, ParameterSlider, Button, Chart, AlgorithmHeader, PlayIcon, ResetIcon } from '@common/modules/MDX/MDXComponents';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const DecisionTreeDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [maxDepth, setMaxDepth] = useState(5);
+  const [minSamplesSplit, setMinSamplesSplit] = useState(2);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('开始训练决策树模型', { maxDepth, minSamplesSplit });
+    
+    try {
+      const response = await axios.post('/api/algorithms/supervised/decision-tree/train', {
+        max_depth: maxDepth,
+        min_samples_split: minSamplesSplit,
+      });
+      setResult(response.data);
+      logger.info('决策树模型训练成功', { result: response.data });
+    } catch (error) {
+      logger.error('决策树模型训练失败', { error: error.message, maxDepth, minSamplesSplit });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'decision-tree',
+          maxDepth,
+          minSamplesSplit,
+          message: '训练失败，请检查后端服务是否正常运行'
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetParameters = () => {
+    setMaxDepth(5);
+    setMinSamplesSplit(2);
+    setResult(null);
+  };
+
+  return (
+    <Demo title="⚡ 交互式实验">
+      <div className="space-y-6">
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <h4 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">📊 参数调整</h4>
+          
+          <ParameterSlider
+            label="最大深度 (Max Depth)"
+            value={maxDepth}
+            onChange={setMaxDepth}
+            min={1}
+            max={20}
+            step={1}
+          />
+          
+          <ParameterSlider
+            label="最小分裂样本数 (Min Samples Split)"
+            value={minSamplesSplit}
+            onChange={setMinSamplesSplit}
+            min={2}
+            max={20}
+            step={1}
+          />
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={runTraining} icon={PlayIcon} disabled={loading}>
+              {loading ? '训练中...' : '运行训练'}
+            </Button>
+            <Button onClick={resetParameters} variant="secondary" icon={ResetIcon}>
+              重置参数
+            </Button>
+          </div>
+        </div>
+
+        {result && (
+          <div className="space-y-4">
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">🌳 训练结果</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">准确率 (Accuracy):</span>
+                  <span className="ml-2 font-mono font-semibold">{result.accuracy?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">树深度:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.tree_depth}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">叶子节点数:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.n_leaves}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">F1 Score:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.f1_score?.toFixed(4)}</span>
+                </div>
+              </div>
+            </div>
+
+            {result.plot_data && (
+              <Chart
+                data={result.plot_data}
+                layout={{
+                  title: '决策树分类结果',
+                  xaxis: { title: 'Feature 1' },
+                  yaxis: { title: 'Feature 2' },
+                  height: 400,
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </Demo>
+  );
+};
+
+<AlgorithmHeader 
+  title="决策树 Decision Tree"
+  difficulty="intermediate"
+  stars={3}
+  time={25}
+/>
+
+## 1️⃣ 算法概览
+
+**决策树**（Decision Tree）是一种基于树形结构的监督学习算法，可用于分类和回归任务。它通过一系列规则（if-then 语句）将数据集递归地划分为更小的子集，最终得到一个类似流程图的树形决策模型。
+
+### 核心思想
+
+- 从根节点开始，选择**最优特征**进行分裂
+- 使用**信息增益**、**基尼指数**等指标评估分裂质量
+- 递归构建子树，直到满足停止条件
+- 新样本沿着树从根节点到叶节点，得到预测结果
+
+### 应用场景
+
+- 🏥 **医疗诊断**：根据症状逐步缩小疾病范围
+- 💰 **信用评估**：评估贷款申请的风险等级
+- 🎯 **客户分类**：根据行为特征进行用户画像
+- 🎮 **游戏 AI**：NPC 决策逻辑
+
+---
+
+## 2️⃣ 发展历史
+
+- **1963年** - **E. B. Hunt** 等人提出 CLS（Concept Learning System）算法
+- **1979年** - **J. Ross Quinlan** 提出 **ID3 算法**（Iterative Dichotomiser 3）
+- **1986年** - Quinlan 改进 ID3，提出 **C4.5 算法**，处理连续特征和缺失值
+- **1984年** - **CART 算法**（Classification and Regression Trees）由 Breiman 等人提出
+- **21世纪** - 决策树成为集成学习（随机森林、GBDT、XGBoost）的基础
+
+---
+
+## 3️⃣ 数学原理
+
+### 信息熵（Entropy）
+
+衡量数据集的**不确定性**或**混乱程度**：
+
+```math
+H(D) = -\sum_{k=1}^{K}p_k\log_2(p_k)
+```
+
+其中 $p_k$ 是第 $k$ 类样本的比例。
+
+- 熵越大，数据越混乱
+- 熵越小，数据越纯净
+- 当数据集只有一个类别时，$H(D) = 0$
+
+### 信息增益（Information Gain）
+
+使用特征 $A$ 划分数据集后，**熵的减少量**：
+
+$$
+IG(D, A) = H(D) - \sum_{v=1}^{V}\frac{|D_v|}{|D|}H(D_v)
+$$
+
+其中 $D_v$ 是特征 $A$ 取值为 $v$ 的样本子集。
+
+**ID3 算法**选择信息增益最大的特征进行分裂。
+
+### 信息增益率（Gain Ratio）
+
+为避免偏向取值较多的特征，**C4.5 算法**使用信息增益率：
+
+```math
+GainRatio(D, A) = \frac{IG(D, A)}{IV(A)}
+```
+
+其中 $IV(A) = -\sum_{v=1}^{V}\frac{|D_v|}{|D|}\log_2\frac{|D_v|}{|D|}$ 是固有值（Intrinsic Value）。
+
+### 基尼指数（Gini Index）
+
+**CART 算法**使用基尼指数衡量数据集的不纯度：
+
+```math
+Gini(D) = 1 - \sum_{k=1}^{K}p_k^2
+```
+
+基尼指数越小，数据集越纯净。选择使基尼指数下降最多的特征进行分裂。
+
+---
+
+## 4️⃣ 交互式实验 ⚡
+
+调整决策树的超参数，观察对模型复杂度和性能的影响：
+
+<DecisionTreeDemo />
+
+---
+
+## 5️⃣ 代码实现
+
+### Python 实现（scikit-learn）
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn import tree
+import matplotlib.pyplot as plt
+
+# 加载数据
+from sklearn.datasets import load_iris
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# 划分数据集
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# 创建决策树分类器
+model = DecisionTreeClassifier(
+    criterion='gini',        # 分裂标准：'gini' 或 'entropy'
+    max_depth=5,             # 最大深度
+    min_samples_split=2,     # 分裂所需最小样本数
+    min_samples_leaf=1,      # 叶节点最小样本数
+    random_state=42
+)
+
+# 训练模型
+model.fit(X_train, y_train)
+
+# 预测
+y_pred = model.predict(X_test)
+
+# 评估
+accuracy = accuracy_score(y_test, y_pred)
+print(f"准确率: {accuracy:.4f}")
+print(f"树深度: {model.tree_.max_depth}")
+print(f"叶子节点数: {model.tree_.n_leaves}")
+
+# 可视化决策树
+plt.figure(figsize=(20, 10))
+tree.plot_tree(model, 
+               feature_names=iris.feature_names,
+               class_names=iris.target_names,
+               filled=True, 
+               rounded=True)
+plt.show()
+```
+
+### 决策树回归
+
+```python
+from sklearn.tree import DecisionTreeRegressor
+
+# 回归任务
+model = DecisionTreeRegressor(
+    max_depth=5,
+    min_samples_split=10,
+    random_state=42
+)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+```
+
+---
+
+## 6️⃣ 剪枝策略
+
+决策树容易过拟合，需要通过**剪枝**控制模型复杂度：
+
+### 预剪枝（Pre-Pruning）
+
+在构建过程中提前停止树的生长：
+
+```python
+model = DecisionTreeClassifier(
+    max_depth=5,              # 限制最大深度
+    min_samples_split=10,     # 分裂所需最小样本数
+    min_samples_leaf=5,       # 叶节点最小样本数
+    max_features=10,          # 分裂时考虑的最大特征数
+    max_leaf_nodes=20         # 最大叶节点数
+)
+```
+
+### 后剪枝（Post-Pruning）
+
+先构建完整的树，再自底向上剪枝：
+
+```python
+# scikit-learn 使用 cost complexity pruning
+# 通过交叉验证选择最优 ccp_alpha
+
+path = model.cost_complexity_pruning_path(X_train, y_train)
+ccp_alphas = path.ccp_alphas
+
+# 在不同 alpha 下训练模型
+models = []
+for ccp_alpha in ccp_alphas:
+    clf = DecisionTreeClassifier(ccp_alpha=ccp_alpha, random_state=42)
+    clf.fit(X_train, y_train)
+    models.append(clf)
+
+# 选择在验证集上表现最好的模型
+best_model = models[np.argmax(train_scores)]
+```
+
+---
+
+## 7️⃣ 优缺点分析
+
+### ✅ 优点
+
+- **可解释性强**：树形结构直观，易于理解和可视化
+- **无需特征缩放**：对特征量纲不敏感
+- **处理非线性关系**：能捕捉复杂的非线性模式
+- **支持多输出**：可同时预测多个目标
+- **处理缺失值**：部分实现（如 XGBoost）能自动处理缺失值
+
+### ❌ 缺点
+
+- **容易过拟合**：尤其是深度较大时
+- **不稳定**：数据的微小变化可能导致完全不同的树结构
+- **局部最优**：贪心算法可能找不到全局最优解
+- **偏向多值特征**：某些分裂标准偏向取值较多的特征
+- **表达能力有限**：难以表达 XOR 等简单关系
+
+---
+
+## 8️⃣ 实际应用案例
+
+### 案例1：泰坦尼克号生存预测
+
+```python
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+
+# 加载数据
+titanic = pd.read_csv('titanic.csv')
+
+# 特征工程
+X = titanic[['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare']]
+y = titanic['Survived']
+
+# 处理类别特征
+X['Sex'] = X['Sex'].map({'male': 0, 'female': 1})
+
+# 训练模型
+model = DecisionTreeClassifier(max_depth=4, min_samples_split=20)
+model.fit(X, y)
+
+# 查看特征重要性
+feature_importance = pd.DataFrame({
+    'feature': X.columns,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+print(feature_importance)
+```
+
+### 案例2：客户流失预测
+
+```python
+# 分类规则提取
+from sklearn.tree import export_text
+
+tree_rules = export_text(model, feature_names=list(X.columns))
+print(tree_rules)
+
+# 输出示例:
+# |--- Age <= 50.0
+# |   |--- MonthlyCharges <= 70.0
+# |   |   |--- class: No Churn
+# |   |--- MonthlyCharges >  70.0
+# |   |   |--- class: Churn
+```
+
+---
+
+## 9️⃣ 与其他算法对比
+
+| 算法 | 可解释性 | 处理非线性 | 过拟合风险 | 训练速度 |
+|------|----------|------------|------------|----------|
+| 决策树 | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| 线性回归 | ⭐⭐⭐⭐ | ⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| 逻辑回归 | ⭐⭐⭐⭐ | ⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| 随机森林 | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ |
+| SVM | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+
+---
+
+## 🎯 关键要点
+
+1. 决策树通过**递归分裂**构建树形决策模型
+2. 常用分裂标准：**信息增益**（ID3）、**信息增益率**（C4.5）、**基尼指数**（CART）
+3. 容易**过拟合**，需要通过**剪枝**（预剪枝、后剪枝）控制复杂度
+4. **可解释性强**，适合需要理解决策逻辑的场景
+5. 是**集成学习**（随机森林、GBDT、XGBoost）的基础
+6. 对**数据变化敏感**，小的扰动可能导致完全不同的树结构
+

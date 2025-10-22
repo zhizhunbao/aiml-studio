@@ -1,0 +1,17 @@
+{
+  "linear_regression": {
+    "title": "Linear Regression",
+    "description": "Predict continuous values by fitting a linear function",
+    "parameter": {
+      "learning_rate": "Learning Rate",
+      "iterations": "Iterations"
+    },
+    "result": {
+      "coefficient": "Coefficient",
+      "intercept": "Intercept",
+      "r2_score": "R² Score",
+      "mse": "Mean Squared Error"
+    }
+  }
+}
+

@@ -1,0 +1,40 @@
+{
+  "nav": {
+    "supervised": "Supervised Learning",
+    "unsupervised": "Unsupervised",
+    "neuralNetworks": "Neural Networks",
+    "algorithms": "Algorithms",
+    "collapseSidebar": "Collapse sidebar",
+    "expandSidebar": "Expand sidebar"
+  },
+  "algorithms": {
+    "linearRegression": {
+      "title": "Linear Regression"
+    },
+    "logisticRegression": {
+      "title": "Logistic Regression"
+    },
+    "decisionTree": {
+      "title": "Decision Tree"
+    },
+    "randomForest": {
+      "title": "Random Forest"
+    },
+    "kmeans": {
+      "title": "K-Means Clustering"
+    },
+    "dbscan": {
+      "title": "DBSCAN Clustering"
+    },
+    "pca": {
+      "title": "Principal Component Analysis"
+    },
+    "mlp": {
+      "title": "Multi-Layer Perceptron"
+    },
+    "cnn": {
+      "title": "Convolutional Neural Network"
+    }
+  }
+}
+

@@ -1,0 +1,423 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { Demo, ParameterSlider, Button, Chart, AlgorithmHeader, PlayIcon, ResetIcon } from '@common/modules/MDX/MDXComponents';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const DecisionTreeDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [maxDepth, setMaxDepth] = useState(5);
+  const [minSamplesSplit, setMinSamplesSplit] = useState(2);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('Started training decision tree model', { maxDepth, minSamplesSplit });
+    
+    try {
+      const response = await axios.post('/api/algorithms/supervised/decision-tree/train', {
+        max_depth: maxDepth,
+        min_samples_split: minSamplesSplit,
+      });
+      setResult(response.data);
+      logger.info('Decision tree model trained successfully', { result: response.data });
+    } catch (error) {
+      logger.error('Decision tree training failed', { error: error.message, maxDepth, minSamplesSplit });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'decision-tree',
+          maxDepth,
+          minSamplesSplit,
+          message: 'Training failed. Please check if backend service is running'
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetParameters = () => {
+    setMaxDepth(5);
+    setMinSamplesSplit(2);
+    setResult(null);
+  };
+
+  return (
+    <Demo title="⚡ Interactive Experiment">
+      <div className="space-y-6">
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <h4 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">📊 Parameters</h4>
+          
+          <ParameterSlider
+            label="Max Depth"
+            value={maxDepth}
+            onChange={setMaxDepth}
+            min={1}
+            max={20}
+            step={1}
+          />
+          
+          <ParameterSlider
+            label="Min Samples Split"
+            value={minSamplesSplit}
+            onChange={setMinSamplesSplit}
+            min={2}
+            max={20}
+            step={1}
+          />
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={runTraining} icon={PlayIcon} disabled={loading}>
+              {loading ? 'Training...' : 'Run Training'}
+            </Button>
+            <Button onClick={resetParameters} variant="secondary" icon={ResetIcon}>
+              Reset
+            </Button>
+          </div>
+        </div>
+
+        {result && (
+          <div className="space-y-4">
+            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">🌳 Training Results</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Accuracy:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.accuracy?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Tree Depth:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.tree_depth}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Number of Leaves:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.n_leaves}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">F1 Score:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.f1_score?.toFixed(4)}</span>
+                </div>
+              </div>
+            </div>
+
+            {result.plot_data && (
+              <Chart
+                data={result.plot_data}
+                layout={{
+                  title: 'Decision Tree Classification',
+                  xaxis: { title: 'Feature 1' },
+                  yaxis: { title: 'Feature 2' },
+                  height: 400,
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </Demo>
+  );
+};
+
+<AlgorithmHeader 
+  title="Decision Tree"
+  difficulty="intermediate"
+  stars={3}
+  time={25}
+/>
+
+## 1️⃣ Algorithm Overview
+
+**Decision Tree** is a tree-based supervised learning algorithm used for classification and regression tasks. It recursively partitions the dataset into smaller subsets through a series of rules (if-then statements), ultimately creating a tree-like decision model similar to a flowchart.
+
+### Core Concepts
+
+- Starting from the root node, select the **best feature** for splitting
+- Use metrics like **Information Gain** and **Gini Index** to evaluate split quality
+- Recursively build subtrees until stopping criteria are met
+- New samples traverse from root to leaf nodes to get predictions
+
+### Application Scenarios
+
+- 🏥 **Medical Diagnosis**: Narrowing down diseases based on symptoms
+- 💰 **Credit Assessment**: Evaluating risk levels for loan applications
+- 🎯 **Customer Segmentation**: Creating user profiles based on behavioral characteristics
+- 🎮 **Game AI**: NPC decision logic
+
+---
+
+## 2️⃣ Historical Development
+
+- **1963** - **E. B. Hunt** et al. proposed CLS (Concept Learning System) algorithm
+- **1979** - **J. Ross Quinlan** introduced **ID3 algorithm** (Iterative Dichotomiser 3)
+- **1986** - Quinlan improved ID3 to create **C4.5 algorithm**, handling continuous features and missing values
+- **1984** - **CART algorithm** (Classification and Regression Trees) proposed by Breiman et al.
+- **21st Century** - Decision trees became the foundation for ensemble learning (Random Forest, GBDT, XGBoost)
+
+---
+
+## 3️⃣ Mathematical Principles
+
+### Information Entropy
+
+Measures the **uncertainty** or **impurity** of a dataset:
+
+```math
+H(D) = -\sum_{k=1}^{K}p_k\log_2(p_k)
+```
+
+Where $p_k$ is the proportion of samples in class $k$.
+
+- Higher entropy means more chaos in data
+- Lower entropy means purer data
+- When dataset contains only one class, $H(D) = 0$
+
+### Information Gain
+
+The **reduction in entropy** after splitting dataset using feature $A$:
+
+$$
+IG(D, A) = H(D) - \sum_{v=1}^{V}\frac{|D_v|}{|D|}H(D_v)
+$$
+
+Where $D_v$ is the subset of samples with feature $A$ equal to value $v$.
+
+**ID3 algorithm** selects the feature with maximum information gain for splitting.
+
+### Gain Ratio
+
+To avoid bias toward features with many values, **C4.5 algorithm** uses gain ratio:
+
+```math
+GainRatio(D, A) = \frac{IG(D, A)}{IV(A)}
+```
+
+Where $IV(A) = -\sum_{v=1}^{V}\frac{|D_v|}{|D|}\log_2\frac{|D_v|}{|D|}$ is the Intrinsic Value.
+
+### Gini Index
+
+**CART algorithm** uses Gini index to measure dataset impurity:
+
+```math
+Gini(D) = 1 - \sum_{k=1}^{K}p_k^2
+```
+
+Lower Gini index means purer dataset. Select the feature that maximizes Gini index reduction for splitting.
+
+---
+
+## 4️⃣ Interactive Experiment ⚡
+
+Adjust decision tree hyperparameters and observe their impact on model complexity and performance:
+
+<DecisionTreeDemo />
+
+---
+
+## 5️⃣ Code Implementation
+
+### Python Implementation (scikit-learn)
+
+```python
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, classification_report
+from sklearn import tree
+import matplotlib.pyplot as plt
+
+# Load data
+from sklearn.datasets import load_iris
+iris = load_iris()
+X, y = iris.data, iris.target
+
+# Split dataset
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# Create decision tree classifier
+model = DecisionTreeClassifier(
+    criterion='gini',        # Split criterion: 'gini' or 'entropy'
+    max_depth=5,             # Maximum depth
+    min_samples_split=2,     # Minimum samples required to split
+    min_samples_leaf=1,      # Minimum samples in leaf node
+    random_state=42
+)
+
+# Train model
+model.fit(X_train, y_train)
+
+# Predict
+y_pred = model.predict(X_test)
+
+# Evaluate
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Accuracy: {accuracy:.4f}")
+print(f"Tree Depth: {model.tree_.max_depth}")
+print(f"Number of Leaves: {model.tree_.n_leaves}")
+
+# Visualize decision tree
+plt.figure(figsize=(20, 10))
+tree.plot_tree(model, 
+               feature_names=iris.feature_names,
+               class_names=iris.target_names,
+               filled=True, 
+               rounded=True)
+plt.show()
+```
+
+### Decision Tree Regression
+
+```python
+from sklearn.tree import DecisionTreeRegressor
+
+# Regression task
+model = DecisionTreeRegressor(
+    max_depth=5,
+    min_samples_split=10,
+    random_state=42
+)
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+```
+
+---
+
+## 6️⃣ Pruning Strategies
+
+Decision trees are prone to overfitting and require **pruning** to control model complexity:
+
+### Pre-Pruning
+
+Stop tree growth early during construction:
+
+```python
+model = DecisionTreeClassifier(
+    max_depth=5,              # Limit maximum depth
+    min_samples_split=10,     # Minimum samples required to split
+    min_samples_leaf=5,       # Minimum samples in leaf node
+    max_features=10,          # Maximum features to consider for splitting
+    max_leaf_nodes=20         # Maximum leaf nodes
+)
+```
+
+### Post-Pruning
+
+Build complete tree first, then prune bottom-up:
+
+```python
+# scikit-learn uses cost complexity pruning
+# Select optimal ccp_alpha through cross-validation
+
+path = model.cost_complexity_pruning_path(X_train, y_train)
+ccp_alphas = path.ccp_alphas
+
+# Train models with different alphas
+models = []
+for ccp_alpha in ccp_alphas:
+    clf = DecisionTreeClassifier(ccp_alpha=ccp_alpha, random_state=42)
+    clf.fit(X_train, y_train)
+    models.append(clf)
+
+# Select best model on validation set
+best_model = models[np.argmax(train_scores)]
+```
+
+---
+
+## 7️⃣ Pros and Cons
+
+### ✅ Advantages
+
+- **Highly Interpretable**: Tree structure is intuitive and easy to visualize
+- **No Feature Scaling Needed**: Insensitive to feature scales
+- **Handles Nonlinear Relationships**: Can capture complex nonlinear patterns
+- **Supports Multi-output**: Can predict multiple targets simultaneously
+- **Handles Missing Values**: Some implementations (like XGBoost) handle missing values automatically
+
+### ❌ Disadvantages
+
+- **Prone to Overfitting**: Especially with large depth
+- **Unstable**: Small changes in data can lead to completely different tree structures
+- **Locally Optimal**: Greedy algorithm may not find global optimum
+- **Biased Toward Multi-valued Features**: Some split criteria favor features with many values
+- **Limited Expressiveness**: Difficult to express simple relationships like XOR
+
+---
+
+## 8️⃣ Real-world Applications
+
+### Case 1: Titanic Survival Prediction
+
+```python
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+
+# Load data
+titanic = pd.read_csv('titanic.csv')
+
+# Feature engineering
+X = titanic[['Pclass', 'Sex', 'Age', 'SibSp', 'Parch', 'Fare']]
+y = titanic['Survived']
+
+# Handle categorical features
+X['Sex'] = X['Sex'].map({'male': 0, 'female': 1})
+
+# Train model
+model = DecisionTreeClassifier(max_depth=4, min_samples_split=20)
+model.fit(X, y)
+
+# View feature importance
+feature_importance = pd.DataFrame({
+    'feature': X.columns,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+print(feature_importance)
+```
+
+### Case 2: Customer Churn Prediction
+
+```python
+# Extract classification rules
+from sklearn.tree import export_text
+
+tree_rules = export_text(model, feature_names=list(X.columns))
+print(tree_rules)
+
+# Example output:
+# |--- Age <= 50.0
+# |   |--- MonthlyCharges <= 70.0
+# |   |   |--- class: No Churn
+# |   |--- MonthlyCharges >  70.0
+# |   |   |--- class: Churn
+```
+
+---
+
+## 9️⃣ Algorithm Comparison
+
+| Algorithm | Interpretability | Nonlinearity | Overfitting Risk | Training Speed |
+|------|----------|------------|------------|----------|
+| Decision Tree | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
+| Linear Regression | ⭐⭐⭐⭐ | ⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Logistic Regression | ⭐⭐⭐⭐ | ⭐ | ⭐⭐ | ⭐⭐⭐⭐⭐ |
+| Random Forest | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐ | ⭐⭐⭐ |
+| SVM | ⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | ⭐⭐ |
+
+---
+
+## 🎯 Key Takeaways
+
+1. Decision trees build tree-like models through **recursive splitting**
+2. Common split criteria: **Information Gain** (ID3), **Gain Ratio** (C4.5), **Gini Index** (CART)
+3. Prone to **overfitting**, requires **pruning** (pre-pruning, post-pruning) to control complexity
+4. **Highly interpretable**, suitable for scenarios requiring understanding of decision logic
+5. Foundation for **ensemble learning** (Random Forest, GBDT, XGBoost)
+6. **Sensitive to data changes**, small perturbations can lead to completely different tree structures
+

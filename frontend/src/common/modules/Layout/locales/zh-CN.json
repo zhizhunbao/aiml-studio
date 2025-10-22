@@ -1,0 +1,13 @@
+{
+  "common": {
+    "hideCode": "隐藏代码",
+    "showCode": "显示代码",
+    "minutes": "分钟"
+  },
+  "difficulty": {
+    "beginner": "初级",
+    "intermediate": "中级",
+    "advanced": "高级"
+  }
+}
+

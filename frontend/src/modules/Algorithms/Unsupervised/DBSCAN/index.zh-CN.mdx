@@ -1,0 +1,217 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const DBSCANDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [eps, setEps] = useState(0.5);
+  const [minSamples, setMinSamples] = useState(5);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runClustering = async () => {
+    setLoading(true);
+    logger.info('开始 DBSCAN 聚类', { eps, minSamples });
+    
+    try {
+      const response = await axios.post('/api/algorithms/unsupervised/dbscan/cluster', {
+        eps: eps,
+        min_samples: minSamples,
+      });
+      setResult(response.data);
+      logger.info('DBSCAN 聚类成功', { result: response.data });
+    } catch (error) {
+      logger.error('DBSCAN 聚类失败', { error: error.message, eps, minSamples });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'dbscan',
+          eps,
+          minSamples,
+          message: '聚类失败，请检查后端服务是否正常运行'
+        }
+      });
+      setResult({ error: '聚类失败，请检查控制台获取详细信息' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="demo-container">
+      <div className="demo-parameters">
+        <h3>聚类参数</h3>
+        <div className="parameter-group">
+          <label htmlFor="eps">EPS (最大距离):</label>
+          <input
+            id="eps"
+            type="number"
+            value={eps}
+            onChange={(e) => setEps(parseFloat(e.target.value))}
+            min="0.1"
+            max="2.0"
+            step="0.1"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="minSamples">最小样本数:</label>
+          <input
+            id="minSamples"
+            type="number"
+            value={minSamples}
+            onChange={(e) => setMinSamples(parseInt(e.target.value))}
+            min="1"
+            max="20"
+          />
+        </div>
+        <button onClick={runClustering} disabled={loading}>
+          {loading ? '聚类中...' : '开始聚类'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="demo-results">
+          <h3>聚类结果</h3>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+# DBSCAN (基于密度的噪声应用空间聚类)
+
+DBSCAN 是一种基于密度的聚类算法，它将紧密聚集的点分组在一起，将位于低密度区域中的孤立点标记为异常值。
+
+## DBSCAN 的工作原理
+
+DBSCAN 通过找到数据空间中的密集区域来工作。算法需要两个关键参数：
+
+### 1. Epsilon (eps)
+- 两个样本之间的最大距离，以便一个样本被认为是另一个样本的邻域
+- 定义数据点周围邻域的半径
+- 决定聚类密度的关键参数
+
+### 2. 最小样本数 (min_samples)
+- 数据点被认为是核心点的邻域中的最小样本数
+- 确定聚类所需的最小密度
+
+## 算法步骤
+
+1. **初始化**：将所有点标记为未访问
+2. **选择点**：随机选择一个未访问的点
+3. **查找邻居**：找到 eps 距离内的所有点
+4. **核心点检查**：如果邻居数 ≥ min_samples，标记为核心点
+5. **扩展聚类**：将所有可达点添加到聚类中
+6. **标记已访问**：将聚类中的所有点标记为已访问
+7. **重复**：继续直到所有点都被访问
+
+## 点的类型
+
+### 核心点
+- 在 eps 距离内至少有 min_samples 个邻居的点
+- 形成聚类的骨干
+
+### 边界点
+- 邻居数少于 min_samples 但在核心点的 eps 距离内的点
+- 属于聚类但不是核心点
+
+### 噪声点
+- 既不是核心点也不是边界点的点
+- 被认为是异常值或噪声
+
+## 交互式演示
+
+尝试使用不同参数进行 DBSCAN 聚类：
+
+<DBSCANDemo />
+
+## 实现示例
+
+以下是使用 Python 和 scikit-learn 的 DBSCAN 实现：
+
+```python
+from sklearn.cluster import DBSCAN
+from sklearn.datasets import make_blobs
+import numpy as np
+
+# 生成样本数据
+X, _ = make_blobs(n_samples=300, centers=4, cluster_std=0.60, random_state=0)
+
+# 应用 DBSCAN 聚类
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+cluster_labels = dbscan.fit_predict(X)
+
+# 获取聚类信息
+n_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
+n_noise = list(cluster_labels).count(-1)
+
+print(f'聚类数量: {n_clusters}')
+print(f'噪声点数量: {n_noise}')
+```
+
+## 优势
+
+- **无需指定聚类数量**：自动确定聚类数量
+- **处理噪声**：将异常值识别为噪声点
+- **任意聚类形状**：可以找到任何形状的聚类，不仅仅是球形
+- **鲁棒性**：在包含噪声和异常值的数据集上表现良好
+
+## 局限性
+
+- **参数敏感性**：性能严重依赖于 eps 和 min_samples 参数
+- **密度变化**：难以处理密度变化的聚类
+- **高维数据**：在高维空间中性能下降
+- **内存使用**：对于大型数据集可能很耗内存
+
+## 参数选择
+
+### 选择 EPS
+- **K-距离图**：绘制 k-距离（到第 k 个最近邻居的距离）
+- **肘部方法**：在 k-距离图中寻找"肘部"
+- **领域知识**：使用领域专业知识设置适当的值
+
+### 选择 Min_samples
+- **经验法则**：从 min_samples = 2 * 维度数开始
+- **数据大小**：更大的数据集可能需要更高的 min_samples
+- **噪声水平**：更高的噪声水平需要更高的 min_samples
+
+## 应用场景
+
+- **图像分割**：对图像中的相似像素进行分组
+- **异常检测**：识别数据中的异常模式
+- **市场细分**：根据行为对客户进行分组
+- **地理数据**：根据邻近性对位置进行聚类
+- **生物信息学**：对具有相似功能的基因或蛋白质进行分组
+
+## 与其他算法的比较
+
+### vs K-Means
+- **形状**：DBSCAN 找到任意形状，K-Means 找到球形聚类
+- **噪声**：DBSCAN 处理噪声，K-Means 不处理
+- **参数**：DBSCAN 需要 eps/min_samples，K-Means 需要 k
+
+### vs 层次聚类
+- **速度**：DBSCAN 通常更快
+- **内存**：DBSCAN 使用更少的内存
+- **可扩展性**：DBSCAN 更好地扩展到大型数据集
+
+## 最佳实践
+
+1. **数据预处理**：标准化特征以确保一致的距离测量
+2. **参数调优**：使用交叉验证或网格搜索进行参数选择
+3. **可视化**：绘制结果以验证聚类质量
+4. **特征工程**：选择相关的聚类特征
+5. **验证**：使用轮廓分析或其他指标评估聚类质量
+
+## 高级技术
+
+- **HDBSCAN**：处理密度变化的层次版本
+- **OPTICS**：排序点以识别聚类结构
+- **DenStream**：用于在线聚类的流式版本
+- **增量 DBSCAN**：随着新数据到达更新聚类

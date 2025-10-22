@@ -1,0 +1,62 @@
+{
+  "randomForest": {
+    "title": "Random Forest",
+    "subtitle": "Random Forest",
+    "description": "A powerful ensemble learning algorithm that makes predictions by voting across multiple decision trees",
+    "demo": {
+      "title": "Interactive Experiment",
+      "parameters": "Parameters",
+      "nEstimators": "Number of Trees",
+      "nEstimatorsDesc": "Number of decision trees in the forest. More trees provide stability but increase training time",
+      "maxDepth": "Max Depth",
+      "maxDepthDesc": "Maximum depth of each decision tree",
+      "minSamplesSplit": "Min Samples Split",
+      "minSamplesLeaf": "Min Samples Leaf",
+      "maxFeatures": "Max Features",
+      "criterion": "Split Criterion",
+      "criterionGini": "Gini Index",
+      "criterionEntropy": "Entropy",
+      "run": "Train",
+      "reset": "Reset",
+      "loading": "Training...",
+      "results": "Training Results",
+      "accuracy": "Accuracy",
+      "f1Score": "F1 Score",
+      "precision": "Precision",
+      "recall": "Recall",
+      "trainingTime": "Training Time",
+      "nTrees": "Number of Trees",
+      "featureImportance": "Feature Importance",
+      "confusionMatrix": "Confusion Matrix",
+      "oobScore": "OOB Score"
+    },
+    "concepts": {
+      "bagging": "Bagging (Bootstrap Aggregating)",
+      "baggingDesc": "Randomly sample with replacement from the original dataset to generate multiple subsets",
+      "randomFeatures": "Random Feature Selection",
+      "randomFeaturesDesc": "Only consider a random subset of features at each split",
+      "voting": "Voting Mechanism",
+      "votingDesc": "Use majority voting for classification, averaging for regression",
+      "oob": "Out-of-Bag Error",
+      "oobDesc": "Validate using unsampled data without needing an additional validation set"
+    },
+    "advantages": {
+      "title": "Advantages",
+      "highAccuracy": "High Accuracy: Ensemble of multiple trees significantly improves prediction",
+      "antiOverfitting": "Overfitting Resistant: Reduces variance through randomness and ensemble",
+      "highDimensional": "High-Dimensional Data: Effectively handles large numbers of features",
+      "featureImportance": "Feature Importance: Automatically evaluates feature contributions",
+      "robust": "Robust: Insensitive to missing values and outliers",
+      "parallel": "Parallelizable: Trees are independent and can be trained in parallel"
+    },
+    "disadvantages": {
+      "title": "Disadvantages",
+      "complex": "Complex Model: Contains many trees, large model size",
+      "slow": "Slow Training: Requires training many decision trees",
+      "interpretability": "Poor Interpretability: Difficult to understand the entire forest's decision logic",
+      "memory": "High Memory: Needs to store multiple trees",
+      "extrapolation": "Weak Extrapolation: Cannot predict values beyond training data range"
+    }
+  }
+}
+

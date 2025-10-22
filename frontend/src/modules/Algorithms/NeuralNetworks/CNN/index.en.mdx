@@ -1,0 +1,207 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const CNNDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [epochs, setEpochs] = useState(10);
+  const [batchSize, setBatchSize] = useState(32);
+  const [learningRate, setLearningRate] = useState(0.001);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('Started training CNN model', { epochs, batchSize, learningRate });
+    
+    try {
+      const response = await axios.post('/api/algorithms/neural-networks/cnn/train', {
+        epochs: epochs,
+        batch_size: batchSize,
+        learning_rate: learningRate,
+      });
+      setResult(response.data);
+      logger.info('CNN training completed successfully', { result: response.data });
+    } catch (error) {
+      logger.error('CNN training failed', { error: error.message, epochs, batchSize, learningRate });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'cnn',
+          epochs,
+          batchSize,
+          learningRate,
+          message: 'Training failed. Please check if backend service is running'
+        }
+      });
+      setResult({ error: 'Training failed. Please check the console for details.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="demo-container">
+      <div className="demo-parameters">
+        <h3>Training Parameters</h3>
+        <div className="parameter-group">
+          <label htmlFor="epochs">Epochs:</label>
+          <input
+            id="epochs"
+            type="number"
+            value={epochs}
+            onChange={(e) => setEpochs(parseInt(e.target.value))}
+            min="1"
+            max="100"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="batchSize">Batch Size:</label>
+          <input
+            id="batchSize"
+            type="number"
+            value={batchSize}
+            onChange={(e) => setBatchSize(parseInt(e.target.value))}
+            min="1"
+            max="256"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="learningRate">Learning Rate:</label>
+          <input
+            id="learningRate"
+            type="number"
+            value={learningRate}
+            onChange={(e) => setLearningRate(parseFloat(e.target.value))}
+            min="0.0001"
+            max="1"
+            step="0.001"
+          />
+        </div>
+        <button onClick={runTraining} disabled={loading}>
+          {loading ? 'Training...' : 'Start Training'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="demo-results">
+          <h3>Training Results</h3>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+# Convolutional Neural Networks (CNN)
+
+A Convolutional Neural Network (CNN) is a deep learning algorithm that is particularly effective for image recognition and computer vision tasks. CNNs are designed to automatically learn spatial hierarchies of features through backpropagation.
+
+## How CNNs Work
+
+CNNs use a mathematical operation called convolution, which involves applying a filter (kernel) to an input image to extract features. The key components of a CNN include:
+
+### 1. Convolutional Layers
+- Apply filters to detect features like edges, textures, and shapes
+- Each filter learns to detect different patterns
+- Creates feature maps that highlight where specific features are found
+
+### 2. Pooling Layers
+- Reduce the spatial dimensions of feature maps
+- Common types: Max pooling and Average pooling
+- Helps reduce computational complexity and prevent overfitting
+
+### 3. Fully Connected Layers
+- Connect every neuron in one layer to every neuron in another layer
+- Used for final classification decisions
+- Similar to traditional neural networks
+
+## Architecture
+
+```
+Input Image → Convolutional Layer → Pooling Layer → Convolutional Layer → Pooling Layer → Fully Connected Layers → Output
+```
+
+## Key Advantages
+
+- **Translation Invariance**: Can recognize objects regardless of their position in the image
+- **Parameter Sharing**: Reduces the number of parameters compared to fully connected networks
+- **Hierarchical Feature Learning**: Automatically learns low-level to high-level features
+
+## Applications
+
+- Image classification
+- Object detection
+- Face recognition
+- Medical image analysis
+- Autonomous vehicles
+
+## Interactive Demo
+
+Try training a CNN model with different parameters:
+
+<CNNDemo />
+
+## Implementation Example
+
+Here's a simple CNN implementation using Python and TensorFlow:
+
+```python
+import tensorflow as tf
+from tensorflow.keras import layers, models
+
+# Create a CNN model
+model = models.Sequential([
+    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(28, 28, 1)),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.Flatten(),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(10, activation='softmax')
+])
+
+# Compile the model
+model.compile(optimizer='adam',
+              loss='sparse_categorical_crossentropy',
+              metrics=['accuracy'])
+
+# Train the model
+model.fit(train_images, train_labels, epochs=10, batch_size=32)
+```
+
+## Hyperparameters
+
+- **Epochs**: Number of complete passes through the training dataset
+- **Batch Size**: Number of samples processed before the model is updated
+- **Learning Rate**: Controls how much the model weights are updated during training
+- **Number of Filters**: Determines the capacity of the network to learn features
+- **Filter Size**: Size of the convolutional kernel (e.g., 3x3, 5x5)
+
+## Best Practices
+
+1. **Data Augmentation**: Increase dataset size by applying transformations
+2. **Regularization**: Use dropout and batch normalization to prevent overfitting
+3. **Transfer Learning**: Use pre-trained models for better performance
+4. **Learning Rate Scheduling**: Adjust learning rate during training
+5. **Early Stopping**: Stop training when validation performance stops improving
+
+## Challenges
+
+- **Computational Requirements**: CNNs require significant computational resources
+- **Overfitting**: Risk of memorizing training data instead of learning general patterns
+- **Hyperparameter Tuning**: Finding optimal parameters can be time-consuming
+- **Data Requirements**: Large amounts of labeled data are often needed
+
+## Future Developments
+
+- **Attention Mechanisms**: Focus on relevant parts of the input
+- **Efficient Architectures**: MobileNets, EfficientNets for mobile deployment
+- **3D CNNs**: Extending CNNs to video and volumetric data
+- **Capsule Networks**: Alternative architecture that preserves spatial relationships

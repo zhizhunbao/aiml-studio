@@ -1,0 +1,17 @@
+{
+  "decision_tree": {
+    "title": "Decision Tree",
+    "description": "Tree-based classification and regression algorithm",
+    "parameter": {
+      "max_depth": "Max Depth",
+      "min_samples_split": "Min Samples Split"
+    },
+    "result": {
+      "accuracy": "Accuracy",
+      "tree_depth": "Tree Depth",
+      "n_leaves": "Number of Leaves",
+      "f1_score": "F1 Score"
+    }
+  }
+}
+

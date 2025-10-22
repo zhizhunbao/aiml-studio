@@ -1,0 +1,477 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { Demo, ParameterSlider, Button, Chart, AlgorithmHeader, PlayIcon, ResetIcon } from '@common/modules/MDX/MDXComponents';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const KMeansDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [nClusters, setNClusters] = useState(3);
+  const [maxIter, setMaxIter] = useState(300);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('开始 K-Means 聚类', { nClusters, maxIter });
+    
+    try {
+      const response = await axios.post('/api/algorithms/unsupervised/kmeans/train', {
+        n_clusters: nClusters,
+        max_iter: maxIter,
+      });
+      setResult(response.data);
+      logger.info('K-Means 聚类成功', { result: response.data });
+    } catch (error) {
+      logger.error('K-Means 聚类失败', { error: error.message, nClusters, maxIter });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'kmeans',
+          nClusters,
+          maxIter,
+          message: '聚类失败，请检查后端服务是否正常运行'
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetParameters = () => {
+    setNClusters(3);
+    setMaxIter(300);
+    setResult(null);
+  };
+
+  return (
+    <Demo title="⚡ 交互式实验">
+      <div className="space-y-6">
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <h4 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">📊 参数调整</h4>
+          
+          <ParameterSlider
+            label="聚类数量 (K)"
+            value={nClusters}
+            onChange={setNClusters}
+            min={2}
+            max={10}
+            step={1}
+          />
+          
+          <ParameterSlider
+            label="最大迭代次数 (Max Iterations)"
+            value={maxIter}
+            onChange={setMaxIter}
+            min={10}
+            max={1000}
+            step={10}
+          />
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={runTraining} icon={PlayIcon} disabled={loading}>
+              {loading ? '聚类中...' : '运行聚类'}
+            </Button>
+            <Button onClick={resetParameters} variant="secondary" icon={ResetIcon}>
+              重置参数
+            </Button>
+          </div>
+        </div>
+
+        {result && (
+          <div className="space-y-4">
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">🎯 聚类结果</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">轮廓系数 (Silhouette Score):</span>
+                  <span className="ml-2 font-mono font-semibold">{result.silhouette_score?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">迭代次数:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.n_iter}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">惯性 (Inertia):</span>
+                  <span className="ml-2 font-mono font-semibold">{result.inertia?.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">聚类数:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.n_clusters}</span>
+                </div>
+              </div>
+            </div>
+
+            {result.plot_data && (
+              <Chart
+                data={result.plot_data}
+                layout={{
+                  title: 'K-Means 聚类结果',
+                  xaxis: { title: 'Feature 1' },
+                  yaxis: { title: 'Feature 2' },
+                  height: 400,
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </Demo>
+  );
+};
+
+<AlgorithmHeader 
+  title="K均值聚类 K-Means Clustering"
+  difficulty="beginner"
+  stars={2}
+  time={20}
+/>
+
+## 1️⃣ 算法概览
+
+**K-Means**（K均值聚类）是最经典、最常用的**无监督学习**算法之一，用于将数据集划分为 $K$ 个簇（cluster）。算法通过迭代优化，使得每个簇内的样本尽可能相似，不同簇之间的样本尽可能不同。
+
+### 核心思想
+
+- 随机初始化 $K$ 个**聚类中心**（centroids）
+- 将每个样本分配到最近的聚类中心
+- 重新计算每个簇的中心（簇内所有样本的均值）
+- 重复上述步骤直到收敛（中心不再变化）
+
+### 应用场景
+
+- 🛍️ **客户细分**：根据购买行为将客户分组
+- 🖼️ **图像压缩**：将相似颜色聚为一类，减少颜色数量
+- 📊 **市场分析**：识别不同的市场细分
+- 🔍 **异常检测**：远离所有聚类中心的样本可能是异常值
+
+---
+
+## 2️⃣ 发展历史
+
+- **1957年** - **Stuart Lloyd** 在贝尔实验室提出 K-Means 算法（但直到 1982 年才发表）
+- **1965年** - **E. W. Forgy** 独立发现并发表了类似算法
+- **1967年** - **James MacQueen** 正式使用 "K-Means" 这个术语
+- **1982年** - Lloyd 的原始论文正式发表
+- **21世纪** - K-Means 成为数据挖掘和机器学习的基础算法
+
+---
+
+## 3️⃣ 数学原理
+
+### 目标函数
+
+K-Means 的目标是最小化**簇内平方和**（Within-Cluster Sum of Squares, WCSS），也称为**惯性**（Inertia）：
+
+```math
+J = \sum_{i=1}^{K}\sum_{\mathbf{x} \in C_i}||\mathbf{x} - \boldsymbol{\mu}_i||^2
+```
+
+其中：
+- $C_i$ 是第 $i$ 个簇
+- $\boldsymbol{\mu}_i$ 是第 $i$ 个簇的中心
+- $||\cdot||$ 是欧几里得距离
+
+### 算法流程
+
+1. **初始化**：随机选择 $K$ 个样本作为初始聚类中心 $\boldsymbol{\mu}_1, \boldsymbol{\mu}_2, ..., \boldsymbol{\mu}_K$
+
+2. **分配步骤**（E-Step）：将每个样本分配到最近的聚类中心
+
+```math
+c^{(i)} = \arg\min_{j}||\mathbf{x}^{(i)} - \boldsymbol{\mu}_j||^2
+```
+
+3. **更新步骤**（M-Step）：重新计算每个簇的中心
+
+```math
+\boldsymbol{\mu}_j = \frac{1}{|C_j|}\sum_{\mathbf{x} \in C_j}\mathbf{x}
+```
+
+4. **收敛判断**：重复步骤 2-3，直到中心不再变化或达到最大迭代次数
+
+### 时间复杂度
+
+- 单次迭代：$O(NKd)$
+  - $N$：样本数量
+  - $K$：聚类数量
+  - $d$：特征维度
+
+---
+
+## 4️⃣ 交互式实验 ⚡
+
+调整聚类数量 $K$，观察对聚类效果的影响：
+
+<KMeansDemo />
+
+---
+
+## 5️⃣ 代码实现
+
+### Python 实现（scikit-learn）
+
+```python
+from sklearn.cluster import KMeans
+from sklearn.datasets import make_blobs
+import matplotlib.pyplot as plt
+
+# 生成示例数据
+X, y_true = make_blobs(n_samples=300, centers=4, cluster_std=0.60, random_state=0)
+
+# 创建 K-Means 模型
+kmeans = KMeans(
+    n_clusters=4,           # 聚类数量
+    init='k-means++',       # 初始化方法
+    max_iter=300,           # 最大迭代次数
+    n_init=10,              # 运行次数（选择最佳结果）
+    random_state=42
+)
+
+# 训练模型
+kmeans.fit(X)
+
+# 预测
+labels = kmeans.predict(X)
+centers = kmeans.cluster_centers_
+
+# 评估
+print(f"惯性（Inertia）: {kmeans.inertia_:.2f}")
+print(f"迭代次数: {kmeans.n_iter_}")
+
+# 可视化
+plt.figure(figsize=(10, 6))
+plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', alpha=0.6)
+plt.scatter(centers[:, 0], centers[:, 1], c='red', marker='X', s=200, edgecolor='black', label='Centroids')
+plt.title('K-Means Clustering')
+plt.legend()
+plt.show()
+```
+
+### 从零实现 K-Means
+
+```python
+import numpy as np
+
+def kmeans(X, K, max_iters=100):
+    # 随机初始化聚类中心
+    np.random.seed(42)
+    centroids = X[np.random.choice(X.shape[0], K, replace=False)]
+    
+    for iteration in range(max_iters):
+        # E-Step: 分配样本到最近的中心
+        distances = np.sqrt(((X - centroids[:, np.newaxis])**2).sum(axis=2))
+        labels = np.argmin(distances, axis=0)
+        
+        # M-Step: 更新聚类中心
+        new_centroids = np.array([X[labels == k].mean(axis=0) for k in range(K)])
+        
+        # 检查收敛
+        if np.allclose(centroids, new_centroids):
+            print(f"收敛于第 {iteration} 次迭代")
+            break
+        
+        centroids = new_centroids
+    
+    return labels, centroids
+
+# 使用
+labels, centers = kmeans(X, K=4)
+```
+
+---
+
+## 6️⃣ 选择最优 K 值
+
+### 肘部法则（Elbow Method）
+
+绘制不同 $K$ 值下的惯性（Inertia），寻找"肘部"（拐点）：
+
+```python
+inertias = []
+K_range = range(1, 11)
+
+for k in K_range:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(X)
+    inertias.append(kmeans.inertia_)
+
+# 绘制肘部曲线
+plt.figure(figsize=(10, 6))
+plt.plot(K_range, inertias, 'bo-')
+plt.xlabel('聚类数量 K')
+plt.ylabel('惯性（Inertia）')
+plt.title('肘部法则')
+plt.grid(True)
+plt.show()
+```
+
+### 轮廓系数（Silhouette Score）
+
+衡量样本与其所在簇的相似度：
+
+```math
+s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}
+```
+
+其中：
+- $a(i)$：样本 $i$ 与同簇其他样本的平均距离
+- $b(i)$：样本 $i$ 与最近其他簇的平均距离
+
+值域：$[-1, 1]$，越接近 1 越好。
+
+```python
+from sklearn.metrics import silhouette_score
+
+silhouette_scores = []
+K_range = range(2, 11)
+
+for k in K_range:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    labels = kmeans.fit_predict(X)
+    score = silhouette_score(X, labels)
+    silhouette_scores.append(score)
+
+# 绘制轮廓系数曲线
+plt.figure(figsize=(10, 6))
+plt.plot(K_range, silhouette_scores, 'go-')
+plt.xlabel('聚类数量 K')
+plt.ylabel('轮廓系数')
+plt.title('轮廓系数分析')
+plt.grid(True)
+plt.show()
+```
+
+---
+
+## 7️⃣ K-Means++ 初始化
+
+标准 K-Means 对初始中心敏感，**K-Means++** 改进了初始化策略：
+
+1. 随机选择第一个中心 $\boldsymbol{\mu}_1$
+2. 对于每个样本 $\mathbf{x}$，计算其到最近中心的距离 $D(\mathbf{x})$
+3. 以概率 $\frac{D(\mathbf{x})^2}{\sum_{\mathbf{x}'}D(\mathbf{x}')^2}$ 选择下一个中心
+4. 重复步骤 2-3，直到选择了 $K$ 个中心
+
+```python
+kmeans = KMeans(n_clusters=4, init='k-means++', random_state=42)
+```
+
+---
+
+## 8️⃣ 优缺点分析
+
+### ✅ 优点
+
+- **简单高效**：易于理解和实现，计算速度快
+- **可扩展**：适合大规模数据集
+- **收敛保证**：算法保证收敛（但可能是局部最优）
+- **广泛应用**：在工业界和学术界都非常流行
+
+### ❌ 缺点
+
+- **需要预设 K 值**：聚类数量需要事先指定
+- **对初始值敏感**：不同初始中心可能导致不同结果
+- **只能发现凸形簇**：对非球形簇效果不佳
+- **对异常值敏感**：极端值会影响聚类中心
+- **假设簇大小相似**：对大小差异显著的簇效果不佳
+
+---
+
+## 9️⃣ 实际应用案例
+
+### 案例1：客户细分
+
+```python
+import pandas as pd
+
+# 客户数据：年龄、收入、消费金额
+customers = pd.read_csv('customers.csv')
+X = customers[['age', 'income', 'spending']].values
+
+# 标准化
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# 聚类
+kmeans = KMeans(n_clusters=5, random_state=42)
+customers['cluster'] = kmeans.fit_predict(X_scaled)
+
+# 分析每个簇的特征
+print(customers.groupby('cluster').mean())
+```
+
+### 案例2：图像压缩
+
+```python
+from sklearn.cluster import KMeans
+from PIL import Image
+import numpy as np
+
+# 加载图像
+img = Image.open('photo.jpg')
+img_array = np.array(img)
+h, w, c = img_array.shape
+
+# 将图像重塑为二维数组
+pixels = img_array.reshape(-1, 3)
+
+# K-Means 聚类（减少颜色数量）
+kmeans = KMeans(n_clusters=16, random_state=42)
+labels = kmeans.fit_predict(pixels)
+compressed_pixels = kmeans.cluster_centers_[labels]
+
+# 重塑回图像形状
+compressed_img = compressed_pixels.reshape(h, w, c).astype(np.uint8)
+
+# 保存压缩图像
+Image.fromarray(compressed_img).save('compressed.jpg')
+```
+
+---
+
+## 🔟 变体算法
+
+### Mini-Batch K-Means
+
+使用小批量样本更新聚类中心，适合超大规模数据：
+
+```python
+from sklearn.cluster import MiniBatchKMeans
+
+mbkmeans = MiniBatchKMeans(
+    n_clusters=4,
+    batch_size=100,
+    random_state=42
+)
+mbkmeans.fit(X)
+```
+
+### K-Medoids（PAM）
+
+使用实际样本作为聚类中心，对异常值更鲁棒：
+
+```python
+from sklearn_extra.cluster import KMedoids
+
+kmedoids = KMedoids(n_clusters=4, random_state=42)
+kmedoids.fit(X)
+```
+
+---
+
+## 🎯 关键要点
+
+1. K-Means 通过**迭代优化**最小化簇内平方和
+2. 算法分为**分配步骤**（E-Step）和**更新步骤**（M-Step）
+3. 需要**预设聚类数量 K**，可通过肘部法则或轮廓系数选择
+4. **K-Means++** 初始化策略能显著提升性能
+5. 对**初始值敏感**，通常运行多次选择最佳结果
+6. 适用于**凸形簇**，对非球形、大小差异大的簇效果不佳
+7. **简单高效**，是聚类分析的首选算法
+

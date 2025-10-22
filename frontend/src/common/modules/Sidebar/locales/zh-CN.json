@@ -1,0 +1,40 @@
+{
+  "nav": {
+    "supervised": "监督学习",
+    "unsupervised": "无监督",
+    "neuralNetworks": "神经网络",
+    "algorithms": "算法导航",
+    "collapseSidebar": "折叠侧边栏",
+    "expandSidebar": "展开侧边栏"
+  },
+  "algorithms": {
+    "linearRegression": {
+      "title": "线性回归"
+    },
+    "logisticRegression": {
+      "title": "逻辑回归"
+    },
+    "decisionTree": {
+      "title": "决策树"
+    },
+    "randomForest": {
+      "title": "随机森林"
+    },
+    "kmeans": {
+      "title": "K-均值聚类"
+    },
+    "dbscan": {
+      "title": "DBSCAN 聚类"
+    },
+    "pca": {
+      "title": "主成分分析"
+    },
+    "mlp": {
+      "title": "多层感知机"
+    },
+    "cnn": {
+      "title": "卷积神经网络"
+    }
+  }
+}
+

@@ -1,0 +1,62 @@
+{
+  "randomForest": {
+    "title": "随机森林",
+    "subtitle": "Random Forest",
+    "description": "集成学习的强大算法，通过构建多棵决策树进行投票预测",
+    "demo": {
+      "title": "交互式实验",
+      "parameters": "参数调整",
+      "nEstimators": "决策树数量",
+      "nEstimatorsDesc": "森林中决策树的数量，越多越稳定但训练时间越长",
+      "maxDepth": "最大深度",
+      "maxDepthDesc": "每棵决策树的最大深度",
+      "minSamplesSplit": "最小分裂样本数",
+      "minSamplesLeaf": "最小叶节点样本数",
+      "maxFeatures": "最大特征数",
+      "criterion": "分裂准则",
+      "criterionGini": "基尼指数",
+      "criterionEntropy": "信息熵",
+      "run": "开始训练",
+      "reset": "重置参数",
+      "loading": "训练中...",
+      "results": "训练结果",
+      "accuracy": "准确率",
+      "f1Score": "F1 分数",
+      "precision": "精确率",
+      "recall": "召回率",
+      "trainingTime": "训练时间",
+      "nTrees": "树的数量",
+      "featureImportance": "特征重要性",
+      "confusionMatrix": "混淆矩阵",
+      "oobScore": "袋外得分"
+    },
+    "concepts": {
+      "bagging": "Bagging（自助聚合）",
+      "baggingDesc": "从原始数据集中有放回地随机抽样生成多个子集",
+      "randomFeatures": "随机特征选择",
+      "randomFeaturesDesc": "每次分裂时只考虑随机选择的特征子集",
+      "voting": "投票机制",
+      "votingDesc": "分类任务使用多数投票，回归任务使用平均值",
+      "oob": "袋外误差",
+      "oobDesc": "使用未被采样的数据进行验证，无需额外验证集"
+    },
+    "advantages": {
+      "title": "优点",
+      "highAccuracy": "高精度：集成多个决策树，显著提升预测性能",
+      "antiOverfitting": "抗过拟合：通过随机性和集成降低方差",
+      "highDimensional": "处理高维数据：能有效处理大量特征",
+      "featureImportance": "特征重要性：自动评估特征对预测的贡献",
+      "robust": "鲁棒性强：对缺失值和异常值不敏感",
+      "parallel": "并行化：树之间独立，可并行训练"
+    },
+    "disadvantages": {
+      "title": "缺点",
+      "complex": "模型复杂：包含多棵树，模型体积大",
+      "slow": "训练时间长：需要训练大量决策树",
+      "interpretability": "可解释性差：难以理解整个森林的决策逻辑",
+      "memory": "内存占用大：需要存储多棵树",
+      "extrapolation": "外推能力弱：无法预测超出训练数据范围的值"
+    }
+  }
+}
+

@@ -1,0 +1,13 @@
+{
+  "app": {
+    "title": "AIML Studio",
+    "subtitle": "Interactive Machine Learning Algorithm Learning Platform"
+  },
+  "nav": {
+    "datasets": "Datasets"
+  },
+  "devTools": {
+    "title": "Developer Tools"
+  }
+}
+

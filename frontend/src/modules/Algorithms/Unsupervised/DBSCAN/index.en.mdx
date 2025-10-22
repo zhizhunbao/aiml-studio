@@ -1,0 +1,217 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const DBSCANDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [eps, setEps] = useState(0.5);
+  const [minSamples, setMinSamples] = useState(5);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runClustering = async () => {
+    setLoading(true);
+    logger.info('Started DBSCAN clustering', { eps, minSamples });
+    
+    try {
+      const response = await axios.post('/api/algorithms/unsupervised/dbscan/cluster', {
+        eps: eps,
+        min_samples: minSamples,
+      });
+      setResult(response.data);
+      logger.info('DBSCAN clustering completed successfully', { result: response.data });
+    } catch (error) {
+      logger.error('DBSCAN clustering failed', { error: error.message, eps, minSamples });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'dbscan',
+          eps,
+          minSamples,
+          message: 'Clustering failed. Please check if backend service is running'
+        }
+      });
+      setResult({ error: 'Clustering failed. Please check the console for details.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="demo-container">
+      <div className="demo-parameters">
+        <h3>Clustering Parameters</h3>
+        <div className="parameter-group">
+          <label htmlFor="eps">EPS (Maximum Distance):</label>
+          <input
+            id="eps"
+            type="number"
+            value={eps}
+            onChange={(e) => setEps(parseFloat(e.target.value))}
+            min="0.1"
+            max="2.0"
+            step="0.1"
+          />
+        </div>
+        <div className="parameter-group">
+          <label htmlFor="minSamples">Minimum Samples:</label>
+          <input
+            id="minSamples"
+            type="number"
+            value={minSamples}
+            onChange={(e) => setMinSamples(parseInt(e.target.value))}
+            min="1"
+            max="20"
+          />
+        </div>
+        <button onClick={runClustering} disabled={loading}>
+          {loading ? 'Clustering...' : 'Start Clustering'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="demo-results">
+          <h3>Clustering Results</h3>
+          <pre>{JSON.stringify(result, null, 2)}</pre>
+        </div>
+      )}
+    </div>
+  );
+};
+
+# DBSCAN (Density-Based Spatial Clustering of Applications with Noise)
+
+DBSCAN is a density-based clustering algorithm that groups together points that are closely packed together, marking as outliers points that lie alone in low-density regions.
+
+## How DBSCAN Works
+
+DBSCAN works by finding dense regions in the data space. The algorithm requires two key parameters:
+
+### 1. Epsilon (eps)
+- Maximum distance between two samples for one to be considered in the neighborhood of the other
+- Defines the radius of the neighborhood around a data point
+- Critical parameter that determines cluster density
+
+### 2. Minimum Samples (min_samples)
+- Minimum number of samples in a neighborhood for a data point to be considered a core point
+- Determines the minimum density required for a cluster
+
+## Algorithm Steps
+
+1. **Initialize**: Mark all points as unvisited
+2. **Select Point**: Choose an unvisited point randomly
+3. **Find Neighbors**: Find all points within eps distance
+4. **Core Point Check**: If neighbors ≥ min_samples, mark as core point
+5. **Expand Cluster**: Add all reachable points to the cluster
+6. **Mark Visited**: Mark all points in the cluster as visited
+7. **Repeat**: Continue until all points are visited
+
+## Types of Points
+
+### Core Points
+- Points that have at least min_samples neighbors within eps distance
+- Form the backbone of clusters
+
+### Border Points
+- Points that have fewer than min_samples neighbors but are within eps distance of a core point
+- Belong to clusters but are not core points
+
+### Noise Points
+- Points that are neither core points nor border points
+- Considered outliers or noise
+
+## Interactive Demo
+
+Try DBSCAN clustering with different parameters:
+
+<DBSCANDemo />
+
+## Implementation Example
+
+Here's a DBSCAN implementation using Python and scikit-learn:
+
+```python
+from sklearn.cluster import DBSCAN
+from sklearn.datasets import make_blobs
+import numpy as np
+
+# Generate sample data
+X, _ = make_blobs(n_samples=300, centers=4, cluster_std=0.60, random_state=0)
+
+# Apply DBSCAN clustering
+dbscan = DBSCAN(eps=0.5, min_samples=5)
+cluster_labels = dbscan.fit_predict(X)
+
+# Get cluster information
+n_clusters = len(set(cluster_labels)) - (1 if -1 in cluster_labels else 0)
+n_noise = list(cluster_labels).count(-1)
+
+print(f'Number of clusters: {n_clusters}')
+print(f'Number of noise points: {n_noise}')
+```
+
+## Advantages
+
+- **No Need to Specify Number of Clusters**: Automatically determines the number of clusters
+- **Handles Noise**: Identifies outliers as noise points
+- **Arbitrary Cluster Shapes**: Can find clusters of any shape, not just spherical
+- **Robust**: Works well with datasets containing noise and outliers
+
+## Limitations
+
+- **Parameter Sensitivity**: Performance heavily depends on eps and min_samples parameters
+- **Density Variation**: Struggles with clusters of varying densities
+- **High-Dimensional Data**: Performance degrades in high-dimensional spaces
+- **Memory Usage**: Can be memory-intensive for large datasets
+
+## Parameter Selection
+
+### Choosing EPS
+- **K-Distance Graph**: Plot k-distance (distance to kth nearest neighbor)
+- **Elbow Method**: Look for the "elbow" in the k-distance graph
+- **Domain Knowledge**: Use domain expertise to set appropriate values
+
+### Choosing Min_samples
+- **Rule of Thumb**: Start with min_samples = 2 * dimensionality
+- **Data Size**: Larger datasets may need higher min_samples
+- **Noise Level**: Higher noise levels require higher min_samples
+
+## Applications
+
+- **Image Segmentation**: Group similar pixels in images
+- **Anomaly Detection**: Identify unusual patterns in data
+- **Market Segmentation**: Group customers based on behavior
+- **Geographic Data**: Cluster locations based on proximity
+- **Bioinformatics**: Group genes or proteins with similar functions
+
+## Comparison with Other Algorithms
+
+### vs K-Means
+- **Shape**: DBSCAN finds arbitrary shapes, K-Means finds spherical clusters
+- **Noise**: DBSCAN handles noise, K-Means doesn't
+- **Parameters**: DBSCAN needs eps/min_samples, K-Means needs k
+
+### vs Hierarchical Clustering
+- **Speed**: DBSCAN is generally faster
+- **Memory**: DBSCAN uses less memory
+- **Scalability**: DBSCAN scales better to large datasets
+
+## Best Practices
+
+1. **Data Preprocessing**: Normalize features for consistent distance measurements
+2. **Parameter Tuning**: Use cross-validation or grid search for parameter selection
+3. **Visualization**: Plot results to validate cluster quality
+4. **Feature Engineering**: Select relevant features for clustering
+5. **Validation**: Use silhouette analysis or other metrics to evaluate clustering quality
+
+## Advanced Techniques
+
+- **HDBSCAN**: Hierarchical version that handles varying densities
+- **OPTICS**: Ordering points to identify clustering structure
+- **DenStream**: Streaming version for online clustering
+- **Incremental DBSCAN**: Updates clusters as new data arrives

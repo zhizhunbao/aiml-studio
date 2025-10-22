@@ -1,0 +1,37 @@
+{
+  "app": {
+    "title": "AIML Studio",
+    "subtitle": "交互式机器学习算法学习平台"
+  },
+  "nav": {
+    "supervised": "监督学习",
+    "unsupervised": "无监督学习",
+    "neuralNetworks": "神经网络"
+  },
+  "common": {
+    "run": "运行训练",
+    "reset": "重置",
+    "viewCode": "查看代码",
+    "showCode": "显示代码",
+    "hideCode": "隐藏代码",
+    "loading": "加载中...",
+    "error": "错误",
+    "success": "成功",
+    "difficulty": "难度",
+    "time": "预计时间",
+    "minutes": "分钟",
+    "selectDataset": "选择数据集",
+    "datasetInfo": "数据集信息",
+    "samples": "样本数",
+    "features": "特征数",
+    "classes": "类别数",
+    "description": "描述",
+    "tableOfContents": "目录"
+  },
+  "difficulty": {
+    "beginner": "初级",
+    "intermediate": "中级",
+    "advanced": "高级"
+  }
+}
+

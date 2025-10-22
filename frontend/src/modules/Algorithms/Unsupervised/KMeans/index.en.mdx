@@ -1,0 +1,477 @@
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import axios from 'axios';
+import { Demo, ParameterSlider, Button, Chart, AlgorithmHeader, PlayIcon, ResetIcon } from '@common/modules/MDX/MDXComponents';
+import { useLogger } from '@common/modules/Logger';
+import { useExceptions, ExceptionType, ExceptionSeverity } from '@common/modules/Exceptions';
+
+export const KMeansDemo = () => {
+  const { t } = useTranslation();
+  const logger = useLogger();
+  const { captureException } = useExceptions();
+  const [nClusters, setNClusters] = useState(3);
+  const [maxIter, setMaxIter] = useState(300);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const runTraining = async () => {
+    setLoading(true);
+    logger.info('Started K-Means clustering', { nClusters, maxIter });
+    
+    try {
+      const response = await axios.post('/api/algorithms/unsupervised/kmeans/train', {
+        n_clusters: nClusters,
+        max_iter: maxIter,
+      });
+      setResult(response.data);
+      logger.info('K-Means clustering completed successfully', { result: response.data });
+    } catch (error) {
+      logger.error('K-Means clustering failed', { error: error.message, nClusters, maxIter });
+      captureException(error, {
+        type: ExceptionType.NETWORK,
+        severity: ExceptionSeverity.HIGH,
+        context: { 
+          algorithm: 'kmeans',
+          nClusters,
+          maxIter,
+          message: 'Clustering failed. Please check if backend service is running'
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetParameters = () => {
+    setNClusters(3);
+    setMaxIter(300);
+    setResult(null);
+  };
+
+  return (
+    <Demo title="⚡ Interactive Experiment">
+      <div className="space-y-6">
+        <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">
+          <h4 className="font-semibold mb-4 text-gray-900 dark:text-gray-100">📊 Parameters</h4>
+          
+          <ParameterSlider
+            label="Number of Clusters (K)"
+            value={nClusters}
+            onChange={setNClusters}
+            min={2}
+            max={10}
+            step={1}
+          />
+          
+          <ParameterSlider
+            label="Max Iterations"
+            value={maxIter}
+            onChange={setMaxIter}
+            min={10}
+            max={1000}
+            step={10}
+          />
+
+          <div className="flex gap-3 mt-6">
+            <Button onClick={runTraining} icon={PlayIcon} disabled={loading}>
+              {loading ? 'Clustering...' : 'Run Clustering'}
+            </Button>
+            <Button onClick={resetParameters} variant="secondary" icon={ResetIcon}>
+              Reset
+            </Button>
+          </div>
+        </div>
+
+        {result && (
+          <div className="space-y-4">
+            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2 text-gray-900 dark:text-gray-100">🎯 Clustering Results</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Silhouette Score:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.silhouette_score?.toFixed(4)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Iterations:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.n_iter}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Inertia:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.inertia?.toFixed(2)}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Clusters:</span>
+                  <span className="ml-2 font-mono font-semibold">{result.n_clusters}</span>
+                </div>
+              </div>
+            </div>
+
+            {result.plot_data && (
+              <Chart
+                data={result.plot_data}
+                layout={{
+                  title: 'K-Means Clustering Results',
+                  xaxis: { title: 'Feature 1' },
+                  yaxis: { title: 'Feature 2' },
+                  height: 400,
+                }}
+              />
+            )}
+          </div>
+        )}
+      </div>
+    </Demo>
+  );
+};
+
+<AlgorithmHeader 
+  title="K-Means Clustering"
+  difficulty="beginner"
+  stars={2}
+  time={20}
+/>
+
+## 1️⃣ Algorithm Overview
+
+**K-Means** is one of the most classic and widely used **unsupervised learning** algorithms for partitioning a dataset into $K$ clusters. The algorithm iteratively optimizes to make samples within each cluster as similar as possible while making samples between different clusters as different as possible.
+
+### Core Concepts
+
+- Randomly initialize $K$ **cluster centroids**
+- Assign each sample to the nearest centroid
+- Recalculate the center of each cluster (mean of all samples in the cluster)
+- Repeat the above steps until convergence (centroids no longer change)
+
+### Use Cases
+
+- 🛍️ **Customer Segmentation**: Group customers based on purchasing behavior
+- 🖼️ **Image Compression**: Cluster similar colors together to reduce color count
+- 📊 **Market Analysis**: Identify different market segments
+- 🔍 **Anomaly Detection**: Samples far from all centroids may be outliers
+
+---
+
+## 2️⃣ History
+
+- **1957** - **Stuart Lloyd** proposed K-Means at Bell Labs (not published until 1982)
+- **1965** - **E. W. Forgy** independently discovered and published a similar algorithm
+- **1967** - **James MacQueen** formally used the term "K-Means"
+- **1982** - Lloyd's original paper was officially published
+- **21st Century** - K-Means became a fundamental algorithm in data mining and machine learning
+
+---
+
+## 3️⃣ Mathematical Principles
+
+### Objective Function
+
+K-Means aims to minimize the **Within-Cluster Sum of Squares (WCSS)**, also known as **Inertia**:
+
+```math
+J = \sum_{i=1}^{K}\sum_{\mathbf{x} \in C_i}||\mathbf{x} - \boldsymbol{\mu}_i||^2
+```
+
+Where:
+- $C_i$ is the $i$-th cluster
+- $\boldsymbol{\mu}_i$ is the center of the $i$-th cluster
+- $||\cdot||$ is the Euclidean distance
+
+### Algorithm Steps
+
+1. **Initialization**: Randomly select $K$ samples as initial centroids $\boldsymbol{\mu}_1, \boldsymbol{\mu}_2, ..., \boldsymbol{\mu}_K$
+
+2. **Assignment Step** (E-Step): Assign each sample to the nearest centroid
+
+```math
+c^{(i)} = \arg\min_{j}||\mathbf{x}^{(i)} - \boldsymbol{\mu}_j||^2
+```
+
+3. **Update Step** (M-Step): Recalculate the center of each cluster
+
+```math
+\boldsymbol{\mu}_j = \frac{1}{|C_j|}\sum_{\mathbf{x} \in C_j}\mathbf{x}
+```
+
+4. **Convergence Check**: Repeat steps 2-3 until centroids no longer change or max iterations reached
+
+### Time Complexity
+
+- Single iteration: $O(NKd)$
+  - $N$: number of samples
+  - $K$: number of clusters
+  - $d$: feature dimension
+
+---
+
+## 4️⃣ Interactive Experiment ⚡
+
+Adjust the number of clusters $K$ and observe its impact on clustering results:
+
+<KMeansDemo />
+
+---
+
+## 5️⃣ Code Implementation
+
+### Python Implementation (scikit-learn)
+
+```python
+from sklearn.cluster import KMeans
+from sklearn.datasets import make_blobs
+import matplotlib.pyplot as plt
+
+# Generate sample data
+X, y_true = make_blobs(n_samples=300, centers=4, cluster_std=0.60, random_state=0)
+
+# Create K-Means model
+kmeans = KMeans(
+    n_clusters=4,           # Number of clusters
+    init='k-means++',       # Initialization method
+    max_iter=300,           # Maximum iterations
+    n_init=10,              # Number of runs (select best result)
+    random_state=42
+)
+
+# Train model
+kmeans.fit(X)
+
+# Predict
+labels = kmeans.predict(X)
+centers = kmeans.cluster_centers_
+
+# Evaluate
+print(f"Inertia: {kmeans.inertia_:.2f}")
+print(f"Iterations: {kmeans.n_iter_}")
+
+# Visualize
+plt.figure(figsize=(10, 6))
+plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', alpha=0.6)
+plt.scatter(centers[:, 0], centers[:, 1], c='red', marker='X', s=200, edgecolor='black', label='Centroids')
+plt.title('K-Means Clustering')
+plt.legend()
+plt.show()
+```
+
+### K-Means from Scratch
+
+```python
+import numpy as np
+
+def kmeans(X, K, max_iters=100):
+    # Randomly initialize centroids
+    np.random.seed(42)
+    centroids = X[np.random.choice(X.shape[0], K, replace=False)]
+    
+    for iteration in range(max_iters):
+        # E-Step: Assign samples to nearest centroid
+        distances = np.sqrt(((X - centroids[:, np.newaxis])**2).sum(axis=2))
+        labels = np.argmin(distances, axis=0)
+        
+        # M-Step: Update centroids
+        new_centroids = np.array([X[labels == k].mean(axis=0) for k in range(K)])
+        
+        # Check convergence
+        if np.allclose(centroids, new_centroids):
+            print(f"Converged at iteration {iteration}")
+            break
+        
+        centroids = new_centroids
+    
+    return labels, centroids
+
+# Usage
+labels, centers = kmeans(X, K=4)
+```
+
+---
+
+## 6️⃣ Choosing Optimal K
+
+### Elbow Method
+
+Plot inertia for different $K$ values and look for the "elbow" (inflection point):
+
+```python
+inertias = []
+K_range = range(1, 11)
+
+for k in K_range:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    kmeans.fit(X)
+    inertias.append(kmeans.inertia_)
+
+# Plot elbow curve
+plt.figure(figsize=(10, 6))
+plt.plot(K_range, inertias, 'bo-')
+plt.xlabel('Number of Clusters K')
+plt.ylabel('Inertia')
+plt.title('Elbow Method')
+plt.grid(True)
+plt.show()
+```
+
+### Silhouette Score
+
+Measures how similar a sample is to its own cluster:
+
+```math
+s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))}
+```
+
+Where:
+- $a(i)$: average distance from sample $i$ to other samples in the same cluster
+- $b(i)$: average distance from sample $i$ to samples in the nearest different cluster
+
+Range: $[-1, 1]$, closer to 1 is better.
+
+```python
+from sklearn.metrics import silhouette_score
+
+silhouette_scores = []
+K_range = range(2, 11)
+
+for k in K_range:
+    kmeans = KMeans(n_clusters=k, random_state=42)
+    labels = kmeans.fit_predict(X)
+    score = silhouette_score(X, labels)
+    silhouette_scores.append(score)
+
+# Plot silhouette scores
+plt.figure(figsize=(10, 6))
+plt.plot(K_range, silhouette_scores, 'go-')
+plt.xlabel('Number of Clusters K')
+plt.ylabel('Silhouette Score')
+plt.title('Silhouette Analysis')
+plt.grid(True)
+plt.show()
+```
+
+---
+
+## 7️⃣ K-Means++ Initialization
+
+Standard K-Means is sensitive to initial centroids. **K-Means++** improves the initialization strategy:
+
+1. Randomly select the first centroid $\boldsymbol{\mu}_1$
+2. For each sample $\mathbf{x}$, compute its distance to the nearest centroid $D(\mathbf{x})$
+3. Select the next centroid with probability $\frac{D(\mathbf{x})^2}{\sum_{\mathbf{x}'}D(\mathbf{x}')^2}$
+4. Repeat steps 2-3 until $K$ centroids are selected
+
+```python
+kmeans = KMeans(n_clusters=4, init='k-means++', random_state=42)
+```
+
+---
+
+## 8️⃣ Pros and Cons
+
+### ✅ Advantages
+
+- **Simple and Efficient**: Easy to understand and implement, fast computation
+- **Scalable**: Suitable for large-scale datasets
+- **Convergence Guarantee**: Algorithm guarantees convergence (though may be local optimum)
+- **Widely Used**: Very popular in both industry and academia
+
+### ❌ Disadvantages
+
+- **Requires Preset K**: Number of clusters must be specified in advance
+- **Sensitive to Initialization**: Different initial centroids may lead to different results
+- **Only Finds Convex Clusters**: Poor performance on non-spherical clusters
+- **Sensitive to Outliers**: Extreme values affect centroid calculation
+- **Assumes Similar Cluster Sizes**: Poor performance when clusters have significantly different sizes
+
+---
+
+## 9️⃣ Real-world Applications
+
+### Case 1: Customer Segmentation
+
+```python
+import pandas as pd
+
+# Customer data: age, income, spending
+customers = pd.read_csv('customers.csv')
+X = customers[['age', 'income', 'spending']].values
+
+# Standardization
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Clustering
+kmeans = KMeans(n_clusters=5, random_state=42)
+customers['cluster'] = kmeans.fit_predict(X_scaled)
+
+# Analyze cluster characteristics
+print(customers.groupby('cluster').mean())
+```
+
+### Case 2: Image Compression
+
+```python
+from sklearn.cluster import KMeans
+from PIL import Image
+import numpy as np
+
+# Load image
+img = Image.open('photo.jpg')
+img_array = np.array(img)
+h, w, c = img_array.shape
+
+# Reshape image to 2D array
+pixels = img_array.reshape(-1, 3)
+
+# K-Means clustering (reduce color count)
+kmeans = KMeans(n_clusters=16, random_state=42)
+labels = kmeans.fit_predict(pixels)
+compressed_pixels = kmeans.cluster_centers_[labels]
+
+# Reshape back to image shape
+compressed_img = compressed_pixels.reshape(h, w, c).astype(np.uint8)
+
+# Save compressed image
+Image.fromarray(compressed_img).save('compressed.jpg')
+```
+
+---
+
+## 🔟 Algorithm Variants
+
+### Mini-Batch K-Means
+
+Uses mini-batches to update centroids, suitable for very large datasets:
+
+```python
+from sklearn.cluster import MiniBatchKMeans
+
+mbkmeans = MiniBatchKMeans(
+    n_clusters=4,
+    batch_size=100,
+    random_state=42
+)
+mbkmeans.fit(X)
+```
+
+### K-Medoids (PAM)
+
+Uses actual samples as centroids, more robust to outliers:
+
+```python
+from sklearn_extra.cluster import KMedoids
+
+kmedoids = KMedoids(n_clusters=4, random_state=42)
+kmedoids.fit(X)
+```
+
+---
+
+## 🎯 Key Takeaways
+
+1. K-Means minimizes within-cluster sum of squares through **iterative optimization**
+2. Algorithm consists of **Assignment Step** (E-Step) and **Update Step** (M-Step)
+3. Requires **preset number of clusters K**, can use Elbow Method or Silhouette Score to choose
+4. **K-Means++** initialization strategy significantly improves performance
+5. **Sensitive to initialization**, typically run multiple times to select best result
+6. Suitable for **convex clusters**, poor performance on non-spherical or varying-size clusters
+7. **Simple and efficient**, the go-to algorithm for clustering analysis
+

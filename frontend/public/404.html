@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+</head>
+<body>
+    <script>
+        // 获取当前路径
+        var path = window.location.pathname;
+        
+        // 重定向到index.html，让React Router处理路由
+        window.location.replace('/aiml-studio/index.html' + window.location.search + window.location.hash);
+    </script>
+</body>
+</html>

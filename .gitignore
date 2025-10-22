@@ -59,7 +59,7 @@ pnpm-debug.log*
 .pnpm-debug.log*
 
 # Frontend build
-frontend/dist/
+# frontend/dist/  # Commented out for GitHub Pages deployment
 frontend/.temp/
 frontend/.cache/
 

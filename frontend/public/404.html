@@ -6,21 +6,16 @@
 </head>
 <body>
     <script>
-        // 立即重定向，无延迟
+        // 保存完整路径信息（包括查询参数和hash）
         var path = window.location.pathname;
+        var search = window.location.search;
+        var hash = window.location.hash;
         
-        // 如果访问的是 /aiml-studio/index.html，重定向到根路径
-        if (path === '/aiml-studio/index.html') {
-            window.location.replace('/aiml-studio/');
-        }
-        // 如果访问的是其他 /aiml-studio/ 路径，重定向到根路径让React Router处理
-        else if (path.startsWith('/aiml-studio/')) {
-            window.location.replace('/aiml-studio/');
-        }
-        // 其他情况重定向到根路径
-        else {
-            window.location.replace('/aiml-studio/');
-        }
+        // 构建目标URL，保留查询参数和hash
+        var targetUrl = '/aiml-studio/' + search + hash;
+        
+        // 立即重定向
+        window.location.replace(targetUrl);
     </script>
 </body>
 </html>

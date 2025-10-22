@@ -74,7 +74,7 @@ function App() {
     <GlobalExceptionBoundary>
       <LayoutProvider>
         <MDXProvider components={MDXComponents}>
-            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+            <Router basename="/aiml-studio" future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
             <Routes>
               {/* 默认重定向到线性回归 */}

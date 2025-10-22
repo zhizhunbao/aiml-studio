@@ -8,6 +8,7 @@ import rehypeKatex from 'rehype-katex';
 import path from 'path';
 
 export default defineConfig({
+  base: '/aiml-studio/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
